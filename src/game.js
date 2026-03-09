@@ -33,7 +33,7 @@ let gameState = {
     allNpcsTalked: false,
     mapAcquired: false,
   },
-  timeLeft: 1800,
+  timeLeft: 3600,
   gameOver: false,
 };
 
@@ -965,6 +965,8 @@ function updateSidebar() {
       exitsList.appendChild(li);
     });
   }
+
+  updateButtons();
 }
 
 function updateTimer() {
@@ -973,8 +975,11 @@ function updateTimer() {
   const s = (t % 60).toString().padStart(2, '0');
   const timerEl = document.getElementById('timer');
   timerEl.textContent = `${m}:${s}`;
-  if (t <= 300) timerEl.style.color = '#ff4444';
-  else timerEl.style.color = '';
+  if (t <= 600) {
+    timerEl.classList.add('urgent');
+  } else {
+    timerEl.classList.remove('urgent');
+  }
 }
 
 function showEnding(title, text) {
@@ -1445,6 +1450,82 @@ function autoSave() {
   try { localStorage.setItem('escapeRoomSave', JSON.stringify(gameState)); } catch(e) {}
 }
 
+// ─── Button helpers ──────────────────────────────────────────────────────────
+
+// Called by onclick attributes in HTML buttons
+function clickCmd(cmd) {
+  handleCommand(cmd);
+  const inp = document.getElementById('command-input');
+  if (inp) inp.focus();
+}
+// Must be global so onclick="clickCmd(...)" works
+window.clickCmd = clickCmd;
+
+// Rebuild the dynamic action-button panel based on current room + inventory
+function updateButtons() {
+  const room = currentRoom();
+
+  // ── Direction buttons: enable only valid exits ──
+  const dirMap = { n: 'north', s: 'south', e: 'east', w: 'west', u: 'up', d: 'down' };
+  Object.entries(dirMap).forEach(([abbr, dir]) => {
+    const btn = document.getElementById(`btn-${abbr}`);
+    if (!btn) return;
+    const hasExit   = dir in (room.exits || {});
+    const hasLocked = dir in (room.lockedExits || {});
+    const reachable = hasExit || hasLocked;
+    btn.disabled = !reachable;
+    btn.style.opacity = reachable ? '1' : '0.18';
+    if (hasLocked && !hasExit) {
+      btn.style.borderColor = 'var(--red)';
+      btn.style.color = 'var(--red)';
+    } else {
+      btn.style.borderColor = '';
+      btn.style.color = '';
+    }
+  });
+
+  // ── Dynamic room-action buttons ──
+  const panel = document.getElementById('room-actions');
+  if (!panel) return;
+  panel.innerHTML = '';
+
+  const makeBtn = (label, cmd, cls) => {
+    const btn = document.createElement('button');
+    btn.className = `act-btn ${cls}`;
+    btn.textContent = label;
+    btn.onclick = () => clickCmd(cmd);
+    panel.appendChild(btn);
+  };
+
+  // Room items: [拿取 X] [查看 X]
+  (room.items || []).forEach(id => {
+    const item = ITEMS[id];
+    if (!item) return;
+    makeBtn(`拿 ${item.name}`, `take ${id}`, 'take-btn');
+    makeBtn(`查看 ${item.name}`, `examine ${id}`, 'exam-btn');
+  });
+
+  // NPC in room
+  if (room.npc && NPCS[room.npc]) {
+    const npc = NPCS[room.npc];
+    const stage = gameState.npcStages[room.npc] || 0;
+    const exhausted = stage >= (npc.stages || []).length;
+    const btn = document.createElement('button');
+    btn.className = 'act-btn npc-btn';
+    btn.textContent = `對話 ${npc.name}`;
+    btn.disabled = exhausted;
+    btn.onclick = () => clickCmd(`talk ${room.npc}`);
+    panel.appendChild(btn);
+  }
+
+  // Inventory items: [查看 X]  — shown in a dimmer style
+  gameState.inventory.forEach(id => {
+    const item = ITEMS[id];
+    if (!item) return;
+    makeBtn(`查看 ${item.name}`, `examine ${id}`, 'inv-btn');
+  });
+}
+
 // ─── Command Parser ──────────────────────────────────────────────────────────
 function handleCommand(input) {
   if (gameState.gameOver) return;
@@ -1508,7 +1589,7 @@ function showSplash() {
   print('', '');
   print('  你在黑暗中醒來，記憶一片空白。', 'intro');
   print('  這個神秘設施藏著你不知道的秘密。', 'intro');
-  print('  你有30分鐘的時間找到出口。', 'intro');
+  print('  你有60分鐘的時間找到出口。', 'intro');
   print('  但逃出去只是開始——真正的問題是：你會帶走什麼真相？', 'intro');
   print('', '');
   print('  輸入 help 查看所有指令', 'info');

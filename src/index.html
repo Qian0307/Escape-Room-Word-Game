@@ -12,7 +12,7 @@
    
   <header id="header">
     <div id="game-title">◈ 密室逃脫：幽靈計畫 ◈</div>
-    <div id="timer-display">⏱ 剩餘時間：<span id="timer">30:00</span></div>
+    <div id="timer-display">⏱ 剩餘時間：<span id="timer">60:00</span></div>
   </header>
 
   <!-- ===== MAIN LAYOUT ===== -->
@@ -62,11 +62,57 @@
 
   </div>
 
+  <!-- ===== ACTION BUTTON PANEL ===== -->
+  <div id="action-panel">
+
+    <!-- Compass cluster -->
+    <div id="compass">
+      <div class="compass-row top-row">
+        <button class="act-btn dir-btn" id="btn-n" onclick="clickCmd('go north')">▲ 北</button>
+      </div>
+      <div class="compass-row mid-row">
+        <button class="act-btn dir-btn" id="btn-w" onclick="clickCmd('go west')">◀ 西</button>
+        <button class="act-btn dir-btn look-btn" onclick="clickCmd('look')">看</button>
+        <button class="act-btn dir-btn" id="btn-e" onclick="clickCmd('go east')">東 ▶</button>
+      </div>
+      <div class="compass-row bot-row">
+        <button class="act-btn dir-btn" id="btn-s" onclick="clickCmd('go south')">▼ 南</button>
+      </div>
+      <div class="compass-row ud-row">
+        <button class="act-btn dir-btn" id="btn-u" onclick="clickCmd('go up')">↑ 上</button>
+        <button class="act-btn dir-btn" id="btn-d" onclick="clickCmd('go down')">↓ 下</button>
+      </div>
+    </div>
+
+    <!-- Fixed quick actions -->
+    <div id="quick-actions">
+      <button class="act-btn quick-btn" onclick="clickCmd('inventory')">🎒 物品欄</button>
+      <button class="act-btn quick-btn" onclick="clickCmd('hint')">💡 提示</button>
+      <button class="act-btn quick-btn" onclick="clickCmd('map')">🗺 地圖</button>
+      <button class="act-btn quick-btn" onclick="clickCmd('save')">💾 儲存</button>
+      <button class="act-btn quick-btn" onclick="clickCmd('load')">📂 讀取</button>
+      <button class="act-btn quick-btn" onclick="clickCmd('help')">❓ 說明</button>
+    </div>
+
+    <!-- Dynamic room / inventory buttons -->
+    <div id="room-actions"></div>
+
+  </div>
+
   <!-- ===== INPUT AREA ===== -->
   <div id="input-area">
     <span id="prompt">&gt;&gt;</span>
     <input id="command-input" type="text" autocomplete="off"
-           placeholder="輸入指令… (help 查看說明)" autofocus />
+           placeholder="輸入指令，或點擊上方按鈕行動…" autofocus />
+  </div>
+
+  <!-- ===== ENDING OVERLAY ===== -->
+  <div id="ending-overlay">
+    <div id="ending-box">
+      <div id="ending-title"></div>
+      <div id="ending-text"></div>
+      <button id="ending-restart">🔄 重新開始</button>
+    </div>
   </div>
 
   <!-- ===== GAME SCRIPT ===== -->
