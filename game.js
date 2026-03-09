@@ -1983,6 +1983,138 @@ function showSplash() {
   print('', '');
 }
 
+// ─── Tutorial ────────────────────────────────────────────────────────────────
+const TUTORIAL_STEPS = [
+  {
+    icon: '◈',
+    title: '歡迎來到密室逃脫',
+    content: '你在一個神秘設施中醒來，記憶一片空白。\n你有 60 分鐘找到出口，並揭開這裡隱藏的秘密。\n\n本教學將帶你快速了解遊戲的操作方式。\n（全程只需滑鼠點擊與拖移，無需打字）',
+    demo: '',
+  },
+  {
+    icon: '🚪',
+    title: '移動：點擊目的地按鈕',
+    content: '畫面底部左側會顯示「可前往的地點」按鈕。\n直接點擊，即可前往該房間。\n\n🔒 灰暗的按鈕表示該出口被封鎖，\n需要特定道具才能通過。',
+    demo: `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;">
+      <div class="demo-dest"><span class="da">▲</span><span class="dn">走廊</span></div>
+      <div class="demo-dest"><span class="da">▶</span><span class="dn">圖書室</span></div>
+      <div class="demo-dest" style="opacity:0.3;border-color:var(--red);color:var(--red);"><span class="da">◀</span><span class="dn">🔒 檔案室</span></div>
+    </div>
+    <div style="color:var(--text-muted);font-size:11px;margin-top:10px;">↑ 點擊按鈕即可移動（灰色＝封鎖）</div>`,
+  },
+  {
+    icon: '📦',
+    title: '拿取物品 & 查看物品',
+    content: '房間地板上的物品以「📦 拿取」按鈕顯示，\n點擊即可拾起，放入左側的物品欄。\n\n物品欄中的卡片可以點擊，查看詳細描述和線索。',
+    demo: `<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:center;">
+      <div class="demo-take">📦 拿取 電池</div>
+      <div class="demo-arrow">→</div>
+      <div class="demo-inv">電池</div>
+    </div>
+    <div style="color:var(--text-muted);font-size:11px;margin-top:10px;">↑ 點擊拿取按鈕 → 物品進入物品欄卡片</div>`,
+  },
+  {
+    icon: '⚗️',
+    title: '合成物品：拖移卡片',
+    content: '物品欄的卡片可以互相拖移來合成新道具。\n\n① 按住一張卡片不放\n② 拖移到另一張卡片上面\n③ 看到紫色光暈 → 鬆開滑鼠即完成合成\n\n範例：把「電池」拖移到「手電筒」上，\n可以合成「修好的手電筒」。',
+    demo: `<div style="display:flex;gap:10px;align-items:center;justify-content:center;">
+      <div class="demo-inv dragging" style="cursor:grabbing;">手電筒</div>
+      <div class="demo-arrow active">→</div>
+      <div class="demo-inv glow">電池</div>
+    </div>
+    <div style="color:var(--purple);font-size:11px;margin-top:10px;">↑ 紫色光暈 = 可合成！拖移過去後放開</div>`,
+  },
+  {
+    icon: '🔐',
+    title: '與物件互動：拖移或點擊',
+    content: '房間裡的互動物件（保險箱、書架、發電機⋯）\n會以圖示方塊顯示在底部中央區域。\n\n① 直接點擊圖示 → 預設操作（開鎖輸入密碼等）\n② 將物品卡片拖移到物件上 → 使用該物品\n\n範例：把「修復電線」拖移到「⚡ 發電機」上，\n即可啟動電力系統！',
+    demo: `<div style="display:flex;gap:12px;align-items:center;justify-content:center;">
+      <div class="demo-inv dragging" style="cursor:grabbing;">修復電線</div>
+      <div class="demo-arrow" style="color:var(--yellow);">→</div>
+      <div class="demo-obj"><span class="di">⚡</span><span>發電機</span></div>
+    </div>
+    <div style="color:var(--yellow);font-size:11px;margin-top:10px;">↑ 琥珀光暈 = 物品正在拖移到此物件</div>`,
+  },
+  {
+    icon: '🧑',
+    title: 'NPC 對話 & 提示',
+    content: '設施裡有 5 個 NPC（守衛、科學家⋯），\n點擊 NPC 圖示即可對話。\n每次對話推進劇情，關鍵 NPC 會給你密碼片段！\n\n卡關了？點擊底部的「💡 提示」按鈕，\n即可獲得當前房間的解謎線索。',
+    demo: `<div style="display:flex;gap:16px;align-items:center;justify-content:center;">
+      <div class="demo-npc"><span class="di">🧑</span><span style="font-size:12px;font-weight:bold;">守衛</span><span style="font-size:10px;color:var(--text-muted);">點擊對話</span></div>
+      <div style="width:1px;height:48px;background:var(--border-light);"></div>
+      <div class="demo-hint">💡 提示</div>
+    </div>
+    <div style="color:var(--text-muted);font-size:11px;margin-top:10px;">↑ 左：點擊 NPC 對話 ／ 右：點擊獲取提示</div>`,
+  },
+  {
+    icon: '🎯',
+    title: '準備好了！',
+    content: '你已掌握所有基本操作！\n\n祝你成功逃脫，揭開幽靈計畫的秘密。\n\n小提示：\n• 多和 NPC 對話，蒐集密碼片段\n• 仔細查看物品描述，裡面有線索\n• 時間到後可查看完整攻略\n• 隨時點擊「💾 儲存」防止進度遺失',
+    demo: '',
+  },
+];
+
+let _tutorialStep = 0;
+
+function showTutorial() {
+  _tutorialStep = 0;
+  renderTutorialStep();
+  document.getElementById('tutorial-overlay').classList.add('show');
+}
+
+function renderTutorialStep() {
+  const total = TUTORIAL_STEPS.length;
+  const step = TUTORIAL_STEPS[_tutorialStep];
+
+  document.getElementById('tutorial-indicator').textContent =
+    `步驟 ${_tutorialStep + 1} ／ ${total}`;
+
+  // Dots
+  const dotsEl = document.getElementById('tutorial-step-dots');
+  dotsEl.innerHTML = '';
+  TUTORIAL_STEPS.forEach((_, i) => {
+    const dot = document.createElement('div');
+    dot.className = 'tutorial-dot' + (i === _tutorialStep ? ' active' : '');
+    dotsEl.appendChild(dot);
+  });
+
+  document.getElementById('tutorial-icon').textContent = step.icon;
+  document.getElementById('tutorial-title').textContent = step.title;
+  document.getElementById('tutorial-content').textContent = step.content;
+  document.getElementById('tutorial-demo').innerHTML = step.demo || '';
+
+  const nextBtn = document.getElementById('tutorial-next');
+  const skipBtn = document.getElementById('tutorial-skip');
+  if (_tutorialStep === total - 1) {
+    nextBtn.textContent = '開始遊戲 →';
+    skipBtn.style.display = 'none';
+  } else {
+    nextBtn.textContent = '下一步 →';
+    skipBtn.style.display = 'inline-block';
+  }
+}
+
+function nextTutorialStep() {
+  _tutorialStep++;
+  if (_tutorialStep >= TUTORIAL_STEPS.length) {
+    closeTutorial();
+  } else {
+    renderTutorialStep();
+  }
+}
+
+function skipTutorial() {
+  closeTutorial();
+}
+
+function closeTutorial() {
+  document.getElementById('tutorial-overlay').classList.remove('show');
+  localStorage.setItem('tutorialDone', '1');
+}
+
+window.nextTutorialStep = nextTutorialStep;
+window.skipTutorial = skipTutorial;
+
 // ─── Initialize ──────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   // Check for existing save
@@ -2015,6 +2147,11 @@ document.addEventListener('DOMContentLoaded', () => {
   describeRoom();
   updateTimer();
   startTimer();
+
+  // Show tutorial for first-time players
+  if (!localStorage.getItem('tutorialDone')) {
+    showTutorial();
+  }
 });
 
 })(); // end IIFE

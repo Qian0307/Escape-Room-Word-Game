@@ -61,6 +61,7 @@
       <button class="act-btn quick-btn" onclick="clickCmd('map')">🗺 地圖</button>
       <button class="act-btn quick-btn" onclick="clickCmd('save')">💾 儲存</button>
       <button class="act-btn quick-btn" onclick="clickCmd('load')">📂 讀取</button>
+      <button class="act-btn quick-btn" onclick="showTutorial()" style="font-size:11px;opacity:0.7;">📖 教學</button>
     </div>
 
     <!-- Room items (take) + Room interactive objects (drag targets) -->
@@ -78,6 +79,22 @@
       <div id="code-btns">
         <button id="code-cancel" onclick="closeCodeModal()">✕ 取消</button>
         <button id="code-confirm" onclick="confirmCode()">✔ 確認</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TUTORIAL OVERLAY ===== -->
+  <div id="tutorial-overlay">
+    <div id="tutorial-box">
+      <div id="tutorial-indicator"></div>
+      <div id="tutorial-step-dots"></div>
+      <div id="tutorial-icon"></div>
+      <div id="tutorial-title"></div>
+      <div id="tutorial-content"></div>
+      <div id="tutorial-demo"></div>
+      <div id="tutorial-nav">
+        <button id="tutorial-skip" onclick="skipTutorial()">跳過教學</button>
+        <button id="tutorial-next" onclick="nextTutorialStep()">下一步 →</button>
       </div>
     </div>
   </div>
