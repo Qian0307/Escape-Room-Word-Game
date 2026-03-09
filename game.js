@@ -1623,8 +1623,9 @@ function confirmCode() {
   if (!inp) return;
   const code = inp.value.trim();
   if (!code) return;
+  const target = _codeTarget;  // save before closeCodeModal() clears it
   closeCodeModal();
-  clickCmd(`open ${_codeTarget} ${code}`);
+  clickCmd(`open ${target} ${code}`);
 }
 
 window.openCodeModal = openCodeModal;
