@@ -966,6 +966,7 @@ function updateSidebar() {
     });
   }
 
+  updateProgress();
   updateButtons();
 }
 
@@ -990,6 +991,142 @@ function showEnding(title, text) {
   document.getElementById('ending-overlay').classList.add('show');
 }
 
+function showTimedOutEnding() {
+  gameState.gameOver = true;
+  clearInterval(timerInterval);
+  const solved = gameState.solvedPuzzles.length;
+  const total = Object.keys(PUZZLES).length;
+  const titleEl = document.getElementById('ending-title');
+  const textEl = document.getElementById('ending-text');
+  const walkthroughEl = document.getElementById('ending-walkthrough');
+  const overlay = document.getElementById('ending-overlay');
+  const box = document.getElementById('ending-box');
+
+  if (titleEl) {
+    titleEl.textContent = '⏰ 時間耗盡';
+    titleEl.classList.add('timeout');
+  }
+  if (box) box.style.borderColor = 'var(--red)';
+  if (textEl) {
+    textEl.textContent = `計時器歸零，設施的自動封鎖系統啟動，所有出口被焊死。\n你被困在這裡，成為了又一個消失的人……\n\n本局進度：已解開 ${solved} / ${total} 個謎題\n\n▼ 下方為完整解謎攻略，供下次遊玩參考：`;
+  }
+  if (walkthroughEl) {
+    walkthroughEl.textContent = generateWalkthrough();
+    walkthroughEl.classList.add('show');
+  }
+  if (overlay) overlay.classList.add('show');
+}
+
+function generateWalkthrough() {
+  return [
+    '═══════════════════════════════════',
+    '          完整解謎攻略              ',
+    '═══════════════════════════════════',
+    '',
+    '【第一步】醒來的房間',
+    '  • 拿起「紙條」（記下保險箱密碼）',
+    '  • 拿起「手電筒」',
+    `  • 點擊「打開保險箱」，輸入密碼：${CODES.safe}`,
+    '  • 得到「電池」和「鑰匙A」',
+    '  • 點擊「組合：手電筒＋電池」→ 修好的手電筒',
+    '',
+    '【第二步】走廊',
+    '  • 點擊「↑ 走廊」按鈕，向北前往走廊',
+    `  • 拿起「藍圖」（記下走廊密碼：${CODES.hallway}）`,
+    '  • 點擊「對話：守衛」兩次 → 得到密碼第1、2位',
+    '',
+    '【第三步】圖書室',
+    '  • 點擊「→ 圖書室」按鈕，向東前往圖書室',
+    '  • 點擊「對話：老人」兩次 → 得到密碼第5、6位',
+    '  • 確認已有修好的手電筒，點擊「用手電筒照射書架」',
+    '    → 書架移開，隱藏房間解鎖！',
+    '',
+    '【第四步】隱藏房間',
+    '  • 點擊「→ 隱藏房間」按鈕進入',
+    '  • 點擊「對話：神秘女子」兩次 → 得到「藍色卡片」',
+    '  • 拿起「筆記本」和「硬碟」',
+    '',
+    '【第五步】實驗室',
+    '  • 返回走廊（西→走廊），再向北→實驗室',
+    '  • 點擊「對話：科學家」兩次 → 得到密碼第3、4位',
+    '  • 拿起「試管A」「試管C」「實驗日誌」',
+    `    （日誌中記下密碼箱密碼：${CODES.labBox}）`,
+    '  • 點擊「組合：試管A＋試管C」→ 混合化學物',
+    `  • 點擊「打開密碼箱」，輸入：${CODES.labBox} → 紅色卡片`,
+    '',
+    '【第六步】實驗室B區',
+    '  • 向東→實驗室B區',
+    '  • 拿起「USB隨身碟」和「解碼器」',
+    '',
+    '【第七步】保全室 & 檔案室',
+    '  • 返回走廊，前往保全室（在走廊西側）',
+    '  • 拿起「識別證」和「鑰匙B」',
+    '  • 走廊→西→檔案室',
+    '  • 拿起「密碼紙」和「舊照片」',
+    '  • 點擊「刷識別證開門」→ 秘密檔案室解鎖',
+    '',
+    '【第八步】地下走廊 & 發電機房',
+    '  • 在檔案室，點擊「↓ 地下走廊」',
+    '  • 拿起「電線」',
+    '  • 繼續向南→發電機房',
+    '  • 拿起「保險絲」和「扳手」',
+    '  • 點擊「組合：電線＋保險絲」→ 修復電線',
+    '  • 點擊「啟動發電機」→ ⚡ 電力恢復！逃生通道解鎖！',
+    '',
+    '【第九步】控制室',
+    '  • 返回走廊→東→圖書室→北→控制室',
+    '  • 拿起「螺絲起子」',
+    '  • 點擊「拆開控制面板」→ 控制室系統啟動',
+    '',
+    '【第十步】密碼室',
+    '  • 在控制室，向西→密碼室',
+    `  • 點擊「打開密碼鎖」，輸入六位密碼：${CODES.cipher}`,
+    '    （密碼來自五位NPC：守衛+科學家+老人，各2位）',
+    '  • 得到「磁力卡」',
+    '',
+    '【第十一步】主機房',
+    '  • 回走廊→北→實驗室→東→B區→北→主機房',
+    `  • 點擊「插入USB」→ 密碼前4位：${CODES.final.substring(0,4)}`,
+    `  • 點擊「連接硬碟」→ 密碼後4位：${CODES.final.substring(4,8)}`,
+    `  • 完整最終密碼：${CODES.final}`,
+    '',
+    '【第十二步】逃生通道 & 最終密碼室',
+    '  • 控制室→逃生通道',
+    `  • 點擊「輸入防火門密碼」，輸入走廊密碼：${CODES.hallway}`,
+    '  • 向北→最終密碼室',
+    `  • 點擊「輸入最終密碼」，輸入：${CODES.final}`,
+    '  • 得到「最終鑰匙」！',
+    '',
+    '【第十三步】出口大廳 — 逃脫！',
+    '  • 向北→出口大廳',
+    '  • 點擊「使用最終鑰匙逃脫」',
+    '  • 🎉 恭喜！成功逃脫！',
+    '',
+    '═══════════════════════════════════',
+    '  隱藏秘密（加分項目）：',
+    '  • 與幽靈對話（廢棄走廊）',
+    '  • 查看磚牆 → 進入深層地下室',
+    '  • 打開金屬容器 → 進入保險庫',
+    '  • 查看保險庫藍色裝置',
+    '  • 讀取幽靈檔案（秘密檔案室）',
+    '  • 使用無線電（通訊室，需天線+無線電組合）',
+    '  • 用手電筒照射鏡子（醫療室）',
+    '  • 蒐集三張舊照片並一同查看',
+    '═══════════════════════════════════',
+  ].join('\n');
+}
+
+// ─── Progress Panel ──────────────────────────────────────────────────────────
+function updateProgress() {
+  const el = document.getElementById('progress-info');
+  if (!el) return;
+  const solved = gameState.solvedPuzzles.length;
+  const total = Object.keys(PUZZLES).length;
+  const npcsMax = Object.keys(NPCS).length;
+  const npcsDone = Object.values(gameState.npcStages).filter(s => s >= 2).length;
+  el.innerHTML = `謎題：${solved} / ${total}<br>NPC：${npcsDone} / ${npcsMax}<br>秘密：${gameState.secretsFound} / 5`;
+}
+
 // ─── Timer ──────────────────────────────────────────────────────────────────
 let timerInterval = null;
 
@@ -999,7 +1136,7 @@ function startTimer() {
     gameState.timeLeft--;
     updateTimer();
     if (gameState.timeLeft <= 0) {
-      showEnding('時間耗盡', '計時器歸零，設施的自動封鎖系統啟動，所有出口被焊死。你被困在這裡，成為了又一個消失的人……時間是最無情的看守者。');
+      showTimedOutEnding();
     }
   }, 1000);
 }
@@ -1455,74 +1592,253 @@ function autoSave() {
 // Called by onclick attributes in HTML buttons
 function clickCmd(cmd) {
   handleCommand(cmd);
-  const inp = document.getElementById('command-input');
-  if (inp) inp.focus();
 }
-// Must be global so onclick="clickCmd(...)" works
 window.clickCmd = clickCmd;
 
-// Rebuild the dynamic action-button panel based on current room + inventory
-function updateButtons() {
-  const room = currentRoom();
+// ─── Code Modal ──────────────────────────────────────────────────────────────
+let _codeTarget = '';
 
-  // ── Direction buttons: enable only valid exits ──
-  const dirMap = { n: 'north', s: 'south', e: 'east', w: 'west', u: 'up', d: 'down' };
-  Object.entries(dirMap).forEach(([abbr, dir]) => {
-    const btn = document.getElementById(`btn-${abbr}`);
-    if (!btn) return;
-    const hasExit   = dir in (room.exits || {});
-    const hasLocked = dir in (room.lockedExits || {});
-    const reachable = hasExit || hasLocked;
-    btn.disabled = !reachable;
-    btn.style.opacity = reachable ? '1' : '0.18';
-    if (hasLocked && !hasExit) {
-      btn.style.borderColor = 'var(--red)';
-      btn.style.color = 'var(--red)';
-    } else {
-      btn.style.borderColor = '';
-      btn.style.color = '';
+function openCodeModal(target, title, desc) {
+  _codeTarget = target;
+  const modal = document.getElementById('code-modal');
+  const titleEl = document.getElementById('code-modal-title');
+  const descEl = document.getElementById('code-desc');
+  const inp = document.getElementById('code-input');
+  if (!modal) return;
+  if (titleEl) titleEl.textContent = `🔐 ${title}`;
+  if (descEl) descEl.textContent = desc;
+  if (inp) { inp.value = ''; }
+  modal.classList.add('show');
+  if (inp) inp.focus();
+}
+
+function closeCodeModal() {
+  const modal = document.getElementById('code-modal');
+  if (modal) modal.classList.remove('show');
+  _codeTarget = '';
+}
+
+function confirmCode() {
+  const inp = document.getElementById('code-input');
+  if (!inp) return;
+  const code = inp.value.trim();
+  if (!code) return;
+  closeCodeModal();
+  clickCmd(`open ${_codeTarget} ${code}`);
+}
+
+window.openCodeModal = openCodeModal;
+window.closeCodeModal = closeCodeModal;
+window.confirmCode = confirmCode;
+
+// ─── Hint Banner ─────────────────────────────────────────────────────────────
+let _hintIndex = 0;
+let _currentHints = [];
+
+function updateHintBanner(room) {
+  const textEl = document.getElementById('hint-text');
+  const nextBtn = document.getElementById('hint-next-btn');
+  if (!textEl) return;
+
+  _currentHints = [];
+
+  // Unsolved puzzle hints first
+  (room.puzzles || []).forEach(pId => {
+    if (!gameState.solvedPuzzles.includes(pId) && PUZZLES[pId] && PUZZLES[pId].hint) {
+      _currentHints.push(PUZZLES[pId].hint);
     }
   });
 
-  // ── Dynamic room-action buttons ──
+  // Room general hints
+  if (room.hints) _currentHints.push(...room.hints);
+
+  if (_currentHints.length === 0) {
+    textEl.textContent = '這個房間的謎題都解開了！繼續探索其他地方吧。';
+  } else {
+    _hintIndex = _hintIndex % _currentHints.length;
+    textEl.textContent = _currentHints[_hintIndex];
+  }
+
+  if (nextBtn) nextBtn.style.display = _currentHints.length > 1 ? 'inline-block' : 'none';
+}
+
+function cycleHint() {
+  if (_currentHints.length === 0) return;
+  _hintIndex = (_hintIndex + 1) % _currentHints.length;
+  const textEl = document.getElementById('hint-text');
+  if (textEl) textEl.textContent = _currentHints[_hintIndex];
+}
+window.cycleHint = cycleHint;
+
+// Rebuild all dynamic button panels
+function updateButtons() {
+  const room = currentRoom();
+  _hintIndex = 0;
+  updateHintBanner(room);
+  updateDestinations(room);
+  updateRoomActions(room);
+}
+
+function updateDestinations(room) {
+  const panel = document.getElementById('destinations');
+  if (!panel) return;
+  panel.innerHTML = '';
+
+  const arrows = { north: '▲', south: '▼', east: '▶', west: '◀', up: '⬆', down: '⬇' };
+  const dirNames = { north: '北', south: '南', east: '東', west: '西', up: '上', down: '下' };
+
+  // Normal exits
+  Object.entries(room.exits || {}).forEach(([dir, dest]) => {
+    const destRoom = ROOMS[dest];
+    if (!destRoom) return;
+    let isLocked = false;
+    if (dest === 'escapeRoute' && ROOMS.escapeRoute.locked) isLocked = true;
+    if (destRoom.locked && !gameState.unlockedRooms.includes(dest)) isLocked = true;
+
+    const btn = document.createElement('button');
+    btn.className = `dest-btn${isLocked ? ' dest-locked' : ''}`;
+    btn.innerHTML = `<span class="dest-arrow">${arrows[dir] || dir} ${dirNames[dir] || dir}</span><span class="dest-name">${isLocked ? '🔒 ' : ''}${destRoom.name}</span>`;
+    btn.disabled = isLocked;
+    if (!isLocked) btn.onclick = () => clickCmd(`go ${dir}`);
+    panel.appendChild(btn);
+  });
+
+  // Locked exits (card/key required)
+  Object.entries(room.lockedExits || {}).forEach(([dir, lock]) => {
+    const destRoom = ROOMS[lock.room];
+    if (!destRoom) return;
+    const hasKey = gameState.inventory.includes(lock.requires) || (lock.altItem && gameState.inventory.includes(lock.altItem));
+    const btn = document.createElement('button');
+    btn.className = `dest-btn${hasKey ? '' : ' dest-locked'}`;
+    btn.innerHTML = `<span class="dest-arrow">${arrows[dir] || dir} ${dirNames[dir] || dir}</span><span class="dest-name">${hasKey ? '' : '🔒 '}${destRoom.name}</span>`;
+    btn.disabled = !hasKey;
+    if (hasKey) btn.onclick = () => clickCmd(`go ${dir}`);
+    panel.appendChild(btn);
+  });
+}
+
+function updateRoomActions(room) {
   const panel = document.getElementById('room-actions');
   if (!panel) return;
   panel.innerHTML = '';
 
-  const makeBtn = (label, cmd, cls) => {
+  const makeBtn = (label, action, cls = '', disabled = false) => {
     const btn = document.createElement('button');
     btn.className = `act-btn ${cls}`;
-    btn.textContent = label;
-    btn.onclick = () => clickCmd(cmd);
+    btn.innerHTML = label;
+    btn.disabled = disabled;
+    if (!disabled && action) btn.onclick = action;
     panel.appendChild(btn);
+    return btn;
   };
 
-  // Room items: [拿取 X] [查看 X]
+  const inv = gameState.inventory;
+
+  // ── Room items ──
   (room.items || []).forEach(id => {
     const item = ITEMS[id];
     if (!item) return;
-    makeBtn(`拿 ${item.name}`, `take ${id}`, 'take-btn');
-    makeBtn(`查看 ${item.name}`, `examine ${id}`, 'exam-btn');
+    makeBtn(`📦 拿取 ${item.name}`, () => clickCmd(`take ${id}`), 'take-btn');
+    makeBtn(`🔍 查看 ${item.name}`, () => clickCmd(`examine ${id}`), 'exam-btn');
   });
 
-  // NPC in room
+  // ── NPC ──
   if (room.npc && NPCS[room.npc]) {
     const npc = NPCS[room.npc];
     const stage = gameState.npcStages[room.npc] || 0;
     const exhausted = stage >= (npc.stages || []).length;
-    const btn = document.createElement('button');
-    btn.className = 'act-btn npc-btn';
-    btn.textContent = `對話 ${npc.name}`;
-    btn.disabled = exhausted;
-    btn.onclick = () => clickCmd(`talk ${room.npc}`);
-    panel.appendChild(btn);
+    makeBtn(`💬 對話：${npc.name}${exhausted ? '（已結束）' : ''}`, () => clickCmd(`talk ${room.npc}`), 'npc-btn', exhausted);
   }
 
-  // Inventory items: [查看 X]  — shown in a dimmer style
-  gameState.inventory.forEach(id => {
+  // ── Combine buttons ──
+  const combines = [
+    { a: 'flashlight', b: 'battery', label: '🔦 組合：手電筒＋電池' },
+    { a: 'testTubeA', b: 'testTubeC', label: '🧪 組合：試管A＋試管C' },
+    { a: 'wire', b: 'fuse', label: '⚡ 組合：電線＋保險絲' },
+    { a: 'antenna', b: 'radio', label: '📻 組合：天線＋無線電' },
+  ];
+  combines.forEach(({ a, b, label }) => {
+    if (inv.includes(a) && inv.includes(b)) {
+      makeBtn(label, () => clickCmd(`combine ${a} ${b}`), 'combine-btn');
+    }
+  });
+
+  // ── Room-specific puzzle buttons ──
+  const rId = room.id;
+
+  if (rId === 'room1' && !gameState.solvedPuzzles.includes('safePuzzle')) {
+    makeBtn('🔐 打開保險箱', () => openCodeModal('safe', '保險箱', '提示：查看紙條上的數字（四位數）'), 'puzzle-btn');
+  }
+  if (rId === 'lab' && !gameState.solvedPuzzles.includes('labBoxPuzzle')) {
+    makeBtn('🔐 打開密碼箱', () => openCodeModal('labbox', '實驗室密碼箱', '提示：查看實驗日誌（四位數）'), 'puzzle-btn');
+  }
+  if (rId === 'cipherRoom' && !gameState.solvedPuzzles.includes('cipherPuzzle')) {
+    makeBtn('🔐 打開密碼鎖', () => openCodeModal('cipherlock', '六位密碼鎖', '提示：與五位NPC對話，各獲得1-2位數字'), 'puzzle-btn');
+  }
+  if (rId === 'escapeRoute' && !gameState.solvedPuzzles.includes('fireDoorPuzzle')) {
+    makeBtn('🔐 輸入防火門密碼', () => openCodeModal('firedoor', '防火門', '提示：查看走廊的藍圖（四位數）'), 'puzzle-btn');
+  }
+  if (rId === 'finalCipherRoom' && !gameState.solvedPuzzles.includes('finalPuzzle')) {
+    makeBtn('🔐 輸入最終密碼', () => openCodeModal('finallock', '最終密碼鎖', '提示：在主機房分別用USB和硬碟讀取（八位數）'), 'puzzle-btn');
+  }
+  if (rId === 'exitHall') {
+    const hasKey = inv.includes('finalKey');
+    makeBtn('🚪 使用最終鑰匙逃脫！', () => clickCmd('use finalKey exit'), 'puzzle-btn exit-btn', !hasKey);
+  }
+  if (rId === 'generatorRoom' && !gameState.solvedPuzzles.includes('generatorPuzzle')) {
+    const hasWire = inv.includes('repairedWire');
+    makeBtn('⚡ 啟動發電機', () => clickCmd('use repairedWire generator'), 'puzzle-btn', !hasWire);
+  }
+  if (rId === 'controlRoom' && !gameState.solvedPuzzles.includes('controlPuzzle')) {
+    const ok = inv.includes('screwdriver') && gameState.flags.powerRestored;
+    makeBtn('🔧 拆開控制面板', () => clickCmd('use screwdriver panel'), 'puzzle-btn', !ok);
+  }
+  if (rId === 'library' && !gameState.solvedPuzzles.includes('bookshelfPuzzle')) {
+    const hasLight = inv.includes('fixedFlashlight');
+    makeBtn('🔦 用手電筒照射書架', () => clickCmd('use fixedFlashlight bookshelf'), 'puzzle-btn', !hasLight);
+  }
+  if (rId === 'medRoom' && !gameState.solvedPuzzles.includes('mirrorPuzzle')) {
+    const hasLight = inv.includes('fixedFlashlight');
+    makeBtn('🔦 用手電筒照射鏡子', () => clickCmd('use fixedFlashlight mirror'), 'puzzle-btn', !hasLight);
+  }
+  if (rId === 'observeRoom' && !gameState.solvedPuzzles.includes('tapePuzzle')) {
+    const hasTape = inv.includes('tape') || room.items.includes('tape');
+    makeBtn('▶ 播放錄音帶', () => clickCmd('use tape recorder'), 'puzzle-btn', !hasTape);
+  }
+  if (rId === 'commRoom' && !gameState.solvedPuzzles.includes('radioPuzzle')) {
+    const hasRadio = inv.includes('activeRadio');
+    makeBtn('📻 使用無線電', () => clickCmd('use activeRadio'), 'puzzle-btn', !hasRadio);
+  }
+  if (rId === 'mainframeRoom' && !gameState.solvedPuzzles.includes('mainframePuzzle')) {
+    if (inv.includes('usb')) makeBtn('💾 插入 USB 讀取資料', () => clickCmd('use usb mainframe'), 'puzzle-btn');
+    if (inv.includes('hardDrive')) makeBtn('💽 連接硬碟讀取資料', () => clickCmd('use hardDrive mainframe'), 'puzzle-btn');
+  }
+  if (rId === 'abandonedHallway' && !gameState.solvedPuzzles.includes('brickWallPuzzle')) {
+    makeBtn('🧱 仔細檢查磚牆', () => clickCmd('examine brickwall'), 'puzzle-btn');
+  }
+  if (rId === 'deepUnderground' && !gameState.solvedPuzzles.includes('containerPuzzle')) {
+    makeBtn('📦 打開金屬容器', () => clickCmd('open container'), 'puzzle-btn');
+  }
+  if (rId === 'archive' && !gameState.solvedPuzzles.includes('keypadPuzzle')) {
+    const hasId = inv.includes('idCard');
+    makeBtn('🔑 刷識別證開密室門', () => clickCmd('use idCard keypad'), 'puzzle-btn', !hasId);
+  }
+  if (rId === 'storage' && !gameState.solvedPuzzles.includes('musicBoxPuzzle')) {
+    makeBtn('🎵 打開音樂盒', () => clickCmd('examine musicbox'), 'puzzle-btn');
+  }
+  if (rId === 'vaultRoom' && !gameState.solvedPuzzles.includes('vaultPuzzle')) {
+    makeBtn('💙 檢查藍色裝置', () => clickCmd('examine bluelightdevice'), 'puzzle-btn');
+  }
+  if (rId === 'labB' && !gameState.solvedPuzzles.includes('decoderPuzzle')) {
+    const ok = inv.includes('decoder') && inv.includes('cipherPaper');
+    makeBtn('🔓 用解碼器解讀密碼紙', () => clickCmd('use decoder cipherpaper'), 'puzzle-btn', !ok);
+  }
+
+  // ── Inventory examine buttons ──
+  inv.forEach(id => {
     const item = ITEMS[id];
     if (!item) return;
-    makeBtn(`查看 ${item.name}`, `examine ${id}`, 'inv-btn');
+    makeBtn(`🔍 查看 ${item.name}`, () => clickCmd(`examine ${id}`), 'inv-btn');
   });
 }
 
@@ -1592,8 +1908,8 @@ function showSplash() {
   print('  你有60分鐘的時間找到出口。', 'intro');
   print('  但逃出去只是開始——真正的問題是：你會帶走什麼真相？', 'intro');
   print('', '');
-  print('  輸入 help 查看所有指令', 'info');
-  print('  輸入 hint 獲取當前房間的提示', 'info');
+  print('  點擊底部按鈕移動與行動，無需輸入指令', 'info');
+  print('  黃色提示欄隨時顯示當前謎題線索', 'info');
   print('', '');
   printSeparator();
   print(`  [本局密碼已隨機生成，祝你好運]`, 'info');
@@ -1615,23 +1931,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Input handler
-  const input = document.getElementById('command-input');
-  if (input) {
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        const val = input.value;
-        input.value = '';
-        handleCommand(val);
-      }
+  // Code modal Enter/Escape handler
+  const codeInput = document.getElementById('code-input');
+  if (codeInput) {
+    codeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') confirmCode();
+      if (e.key === 'Escape') closeCodeModal();
     });
-    input.focus();
   }
 
   showSplash();
 
   if (savedData) {
-    print('發現存檔資料。輸入 load 讀取，或直接開始新遊戲。', 'info');
+    print('發現存檔資料。點擊「📂 讀取」按鈕可讀取上次進度，或直接開始新遊戲。', 'info');
   }
 
   describeRoom();

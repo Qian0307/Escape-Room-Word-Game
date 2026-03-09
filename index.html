@@ -3,13 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>密室逃脫 — 文字冒險</title>
+  <title>密室逃脫 — 幽靈計畫</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
   <!-- ===== HEADER ===== -->
-   
   <header id="header">
     <div id="game-title">◈ 密室逃脫：幽靈計畫 ◈</div>
     <div id="timer-display">⏱ 剩餘時間：<span id="timer">60:00</span></div>
@@ -36,62 +35,37 @@
       </div>
 
       <div id="exits-panel">
-        <div class="panel-title">🚪 出口</div>
+        <div class="panel-title">🚪 可前往</div>
         <div id="exits-list">—</div>
       </div>
 
-      <div id="help-panel">
-        <div class="panel-title">💡 指令速查</div>
-        <div class="help-text">
-          look / 環顧四周<br>
-          examine [物品]<br>
-          take [物品]<br>
-          open [物品] [密碼]<br>
-          use [物品] [目標]<br>
-          combine [物1] [物2]<br>
-          read [物品]<br>
-          go [方向]<br>
-          talk [角色]<br>
-          inventory / i<br>
-          hint / 提示<br>
-          save / load<br>
-          help / 說明
-        </div>
+      <div id="progress-panel">
+        <div class="panel-title">📊 解謎進度</div>
+        <div id="progress-info">0 個謎題已解</div>
       </div>
     </aside>
 
   </div>
 
-  <!-- ===== ACTION BUTTON PANEL ===== -->
+  <!-- ===== HINT BANNER ===== -->
+  <div id="hint-banner">
+    <span id="hint-icon">💡</span>
+    <div id="hint-text">正在載入提示…</div>
+    <button id="hint-next-btn" onclick="cycleHint()">下一提示 ›</button>
+  </div>
+
+  <!-- ===== ACTION PANEL ===== -->
   <div id="action-panel">
 
-    <!-- Compass cluster -->
-    <div id="compass">
-      <div class="compass-row top-row">
-        <button class="act-btn dir-btn" id="btn-n" onclick="clickCmd('go north')">▲ 北</button>
-      </div>
-      <div class="compass-row mid-row">
-        <button class="act-btn dir-btn" id="btn-w" onclick="clickCmd('go west')">◀ 西</button>
-        <button class="act-btn dir-btn look-btn" onclick="clickCmd('look')">看</button>
-        <button class="act-btn dir-btn" id="btn-e" onclick="clickCmd('go east')">東 ▶</button>
-      </div>
-      <div class="compass-row bot-row">
-        <button class="act-btn dir-btn" id="btn-s" onclick="clickCmd('go south')">▼ 南</button>
-      </div>
-      <div class="compass-row ud-row">
-        <button class="act-btn dir-btn" id="btn-u" onclick="clickCmd('go up')">↑ 上</button>
-        <button class="act-btn dir-btn" id="btn-d" onclick="clickCmd('go down')">↓ 下</button>
-      </div>
-    </div>
+    <!-- Dynamic destination buttons (replaces compass) -->
+    <div id="destinations"></div>
 
     <!-- Fixed quick actions -->
     <div id="quick-actions">
-      <button class="act-btn quick-btn" onclick="clickCmd('inventory')">🎒 物品欄</button>
-      <button class="act-btn quick-btn" onclick="clickCmd('hint')">💡 提示</button>
+      <button class="act-btn quick-btn" onclick="clickCmd('look')">🔍 環顧</button>
       <button class="act-btn quick-btn" onclick="clickCmd('map')">🗺 地圖</button>
       <button class="act-btn quick-btn" onclick="clickCmd('save')">💾 儲存</button>
       <button class="act-btn quick-btn" onclick="clickCmd('load')">📂 讀取</button>
-      <button class="act-btn quick-btn" onclick="clickCmd('help')">❓ 說明</button>
     </div>
 
     <!-- Dynamic room / inventory buttons -->
@@ -99,11 +73,18 @@
 
   </div>
 
-  <!-- ===== INPUT AREA ===== -->
-  <div id="input-area">
-    <span id="prompt">&gt;&gt;</span>
-    <input id="command-input" type="text" autocomplete="off"
-           placeholder="輸入指令，或點擊上方按鈕行動…" autofocus />
+  <!-- ===== CODE INPUT MODAL ===== -->
+  <div id="code-modal">
+    <div id="code-box">
+      <div id="code-modal-title">輸入密碼</div>
+      <div id="code-desc"></div>
+      <input id="code-input" type="text" inputmode="numeric" pattern="[0-9]*"
+             placeholder="輸入數字密碼…" autocomplete="off" />
+      <div id="code-btns">
+        <button id="code-cancel" onclick="closeCodeModal()">✕ 取消</button>
+        <button id="code-confirm" onclick="confirmCode()">✔ 確認</button>
+      </div>
+    </div>
   </div>
 
   <!-- ===== ENDING OVERLAY ===== -->
@@ -111,6 +92,7 @@
     <div id="ending-box">
       <div id="ending-title"></div>
       <div id="ending-text"></div>
+      <div id="ending-walkthrough"></div>
       <button id="ending-restart">🔄 重新開始</button>
     </div>
   </div>
