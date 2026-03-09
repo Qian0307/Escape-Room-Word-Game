@@ -29,9 +29,10 @@
         <div id="room-name">載入中…</div>
       </div>
 
+      <!-- Inventory as draggable cards -->
       <div id="inventory-panel">
-        <div class="panel-title">🎒 物品欄</div>
-        <div id="inventory-list">（空）</div>
+        <div class="panel-title">🎒 物品欄 <small>（拖移物品可合成／互動）</small></div>
+        <div id="inventory-cards"></div>
       </div>
 
       <div id="exits-panel">
@@ -47,28 +48,22 @@
 
   </div>
 
-  <!-- ===== HINT BANNER ===== -->
-  <div id="hint-banner">
-    <span id="hint-icon">💡</span>
-    <div id="hint-text">正在載入提示…</div>
-    <button id="hint-next-btn" onclick="cycleHint()">下一提示 ›</button>
-  </div>
-
   <!-- ===== ACTION PANEL ===== -->
   <div id="action-panel">
 
-    <!-- Dynamic destination buttons (replaces compass) -->
+    <!-- Dynamic destination buttons -->
     <div id="destinations"></div>
 
     <!-- Fixed quick actions -->
     <div id="quick-actions">
       <button class="act-btn quick-btn" onclick="clickCmd('look')">🔍 環顧</button>
+      <button class="act-btn quick-btn hint-btn" onclick="clickCmd('hint')">💡 提示</button>
       <button class="act-btn quick-btn" onclick="clickCmd('map')">🗺 地圖</button>
       <button class="act-btn quick-btn" onclick="clickCmd('save')">💾 儲存</button>
       <button class="act-btn quick-btn" onclick="clickCmd('load')">📂 讀取</button>
     </div>
 
-    <!-- Dynamic room / inventory buttons -->
+    <!-- Room items (take) + Room interactive objects (drag targets) -->
     <div id="room-actions"></div>
 
   </div>

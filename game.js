@@ -939,18 +939,6 @@ function updateSidebar() {
   const room = currentRoom();
   document.getElementById('room-name').textContent = room.name;
 
-  const invList = document.getElementById('inventory-list');
-  invList.innerHTML = '';
-  if (gameState.inventory.length === 0) {
-    const li = document.createElement('li'); li.textContent = '（空）'; invList.appendChild(li);
-  } else {
-    gameState.inventory.forEach(id => {
-      const li = document.createElement('li');
-      li.textContent = ITEMS[id] ? ITEMS[id].name : id;
-      invList.appendChild(li);
-    });
-  }
-
   const exitsList = document.getElementById('exits-list');
   exitsList.innerHTML = '';
   const exitMap = { north: '北', south: '南', east: '東', west: '西', up: '上', down: '下' };
@@ -1589,10 +1577,7 @@ function autoSave() {
 
 // ─── Button helpers ──────────────────────────────────────────────────────────
 
-// Called by onclick attributes in HTML buttons
-function clickCmd(cmd) {
-  handleCommand(cmd);
-}
+function clickCmd(cmd) { handleCommand(cmd); }
 window.clickCmd = clickCmd;
 
 // ─── Code Modal ──────────────────────────────────────────────────────────────
@@ -1607,7 +1592,7 @@ function openCodeModal(target, title, desc) {
   if (!modal) return;
   if (titleEl) titleEl.textContent = `🔐 ${title}`;
   if (descEl) descEl.textContent = desc;
-  if (inp) { inp.value = ''; }
+  if (inp) inp.value = '';
   modal.classList.add('show');
   if (inp) inp.focus();
 }
@@ -1623,7 +1608,7 @@ function confirmCode() {
   if (!inp) return;
   const code = inp.value.trim();
   if (!code) return;
-  const target = _codeTarget;  // save before closeCodeModal() clears it
+  const target = _codeTarget;
   closeCodeModal();
   clickCmd(`open ${target} ${code}`);
 }
@@ -1632,50 +1617,188 @@ window.openCodeModal = openCodeModal;
 window.closeCodeModal = closeCodeModal;
 window.confirmCode = confirmCode;
 
-// ─── Hint Banner ─────────────────────────────────────────────────────────────
-let _hintIndex = 0;
-let _currentHints = [];
+// ─── Drag-and-Drop System ────────────────────────────────────────────────────
+let _draggingItemId = null;
 
-function updateHintBanner(room) {
-  const textEl = document.getElementById('hint-text');
-  const nextBtn = document.getElementById('hint-next-btn');
-  if (!textEl) return;
+// Valid combine pairs (sorted keys)
+const COMBINE_PAIRS = new Set([
+  'battery+flashlight',
+  'testTubeA+testTubeC',
+  'fuse+wire',
+  'antenna+radio',
+]);
 
-  _currentHints = [];
+// Per-room interactive objects (drag targets)
+const ROOM_OBJ_MAP = {
+  room1:            [{ id: 'safe',            icon: '🔐', label: '保險箱'     }],
+  lab:              [{ id: 'labbox',           icon: '📦', label: '密碼箱'     }],
+  library:          [{ id: 'bookshelf',        icon: '📚', label: '書架'       }],
+  medRoom:          [{ id: 'mirror',           icon: '🪞', label: '鏡子'       }],
+  generatorRoom:    [{ id: 'generator',        icon: '⚡', label: '發電機'     }],
+  controlRoom:      [{ id: 'panel',            icon: '🖥️',  label: '控制面板'   }],
+  cipherRoom:       [{ id: 'cipherlock',       icon: '🔒', label: '密碼鎖'     }],
+  escapeRoute:      [{ id: 'firedoor',         icon: '🚪', label: '防火門'     }],
+  finalCipherRoom:  [{ id: 'finallock',        icon: '🔏', label: '最終密碼鎖' }],
+  exitHall:         [{ id: 'exitdoor',         icon: '🚪', label: '出口大門'   }],
+  observeRoom:      [{ id: 'recorder',         icon: '📼', label: '錄音機'     }],
+  commRoom:         [{ id: 'radio_device',     icon: '📻', label: '無線電設備' }],
+  mainframeRoom:    [{ id: 'mainframe',        icon: '💻', label: '主機'       }],
+  storage:          [{ id: 'musicbox',         icon: '🎵', label: '音樂盒'     }],
+  abandonedHallway: [{ id: 'brickwall',        icon: '🧱', label: '磚牆'       }],
+  deepUnderground:  [{ id: 'container',        icon: '📦', label: '金屬容器'   }],
+  archive:          [{ id: 'keypad',           icon: '🔑', label: '門禁讀卡機' }],
+  labB:             [{ id: 'computer',         icon: '💻', label: '電腦工作站' }],
+  vaultRoom:        [{ id: 'bluelightdevice',  icon: '💙', label: '藍色裝置'   }],
+  restRoom:         [{ id: 'lipstick_cup',     icon: '☕', label: '口紅杯'     }],
+  securityRoom:     [],
+  hiddenRoom:       [],
+};
 
-  // Unsolved puzzle hints first
-  (room.puzzles || []).forEach(pId => {
-    if (!gameState.solvedPuzzles.includes(pId) && PUZZLES[pId] && PUZZLES[pId].hint) {
-      _currentHints.push(PUZZLES[pId].hint);
-    }
-  });
+// Puzzles that are "solved" by a given room object id
+const OBJ_SOLVED_MAP = {
+  safe: 'safePuzzle', labbox: 'labBoxPuzzle', bookshelf: 'bookshelfPuzzle',
+  mirror: 'mirrorPuzzle', generator: 'generatorPuzzle', panel: 'controlPuzzle',
+  cipherlock: 'cipherPuzzle', firedoor: 'fireDoorPuzzle', finallock: 'finalPuzzle',
+  exitdoor: 'exitPuzzle', recorder: 'tapePuzzle', radio_device: 'radioPuzzle',
+  mainframe: 'mainframePuzzle', musicbox: 'musicBoxPuzzle', brickwall: 'brickWallPuzzle',
+  container: 'containerPuzzle', keypad: 'keypadPuzzle', computer: 'sequencePuzzle',
+  bluelightdevice: 'vaultPuzzle', lipstick_cup: 'cupPuzzle',
+};
 
-  // Room general hints
-  if (room.hints) _currentHints.push(...room.hints);
+// Code-entry objects (drag or click → open code modal)
+const CODE_OBJECTS = {
+  safe:       { target: 'safe',       title: '保險箱',    desc: '提示：查看紙條上的數字（四位數）' },
+  labbox:     { target: 'labbox',     title: '實驗室密碼箱', desc: '提示：查看實驗日誌（四位數）' },
+  cipherlock: { target: 'cipherlock', title: '六位密碼鎖', desc: '提示：與五位NPC對話，各獲得1-2位數字' },
+  firedoor:   { target: 'firedoor',   title: '防火門',    desc: '提示：查看走廊的藍圖（四位數）' },
+  finallock:  { target: 'finallock',  title: '最終密碼鎖', desc: '提示：在主機房用USB和硬碟讀取（八位數）' },
+};
 
-  if (_currentHints.length === 0) {
-    textEl.textContent = '這個房間的謎題都解開了！繼續探索其他地方吧。';
-  } else {
-    _hintIndex = _hintIndex % _currentHints.length;
-    textEl.textContent = _currentHints[_hintIndex];
+function handleItemDropOnObject(itemId, objectId) {
+  if (!gameState.inventory.includes(itemId)) return;
+
+  // Code-entry puzzles: open modal regardless of item
+  if (CODE_OBJECTS[objectId]) {
+    const ct = CODE_OBJECTS[objectId];
+    openCodeModal(ct.target, ct.title, ct.desc);
+    return;
   }
 
-  if (nextBtn) nextBtn.style.display = _currentHints.length > 1 ? 'inline-block' : 'none';
+  if (objectId === 'exitdoor') { clickCmd(`use ${itemId} exit`); return; }
+  if (objectId === 'mainframe') { clickCmd(`use ${itemId} mainframe`); return; }
+  if (objectId === 'recorder')  { clickCmd(`use ${itemId} recorder`); return; }
+  if (objectId === 'radio_device') { clickCmd(`use ${itemId} radio`); return; }
+  if (objectId === 'computer')  { clickCmd(`use ${itemId} computer`); return; }
+  if (objectId === 'brickwall') { clickCmd('examine brickwall'); return; }
+  if (objectId === 'musicbox')  { clickCmd('examine musicbox'); return; }
+  if (objectId === 'container') { clickCmd('open container'); return; }
+  if (objectId === 'lipstick_cup') { clickCmd('examine lipstick'); return; }
+  if (objectId === 'bluelightdevice') { clickCmd('examine bluelightdevice'); return; }
+
+  // Generic fallback
+  clickCmd(`use ${itemId} ${objectId}`);
 }
 
-function cycleHint() {
-  if (_currentHints.length === 0) return;
-  _hintIndex = (_hintIndex + 1) % _currentHints.length;
-  const textEl = document.getElementById('hint-text');
-  if (textEl) textEl.textContent = _currentHints[_hintIndex];
+function handleRoomObjClick(objectId) {
+  if (CODE_OBJECTS[objectId]) {
+    const ct = CODE_OBJECTS[objectId];
+    openCodeModal(ct.target, ct.title, ct.desc);
+    return;
+  }
+  if (objectId === 'exitdoor')     { clickCmd('use finalKey exit'); return; }
+  if (objectId === 'brickwall')    { clickCmd('examine brickwall'); return; }
+  if (objectId === 'musicbox')     { clickCmd('examine musicbox'); return; }
+  if (objectId === 'container')    { clickCmd('open container'); return; }
+  if (objectId === 'bluelightdevice') { clickCmd('examine bluelightdevice'); return; }
+  if (objectId === 'lipstick_cup') { clickCmd('examine lipstick'); return; }
 }
-window.cycleHint = cycleHint;
 
-// Rebuild all dynamic button panels
+// Highlight inventory cards that can combine with the dragged item
+function highlightCombinables(draggedId) {
+  document.querySelectorAll('.inv-card').forEach(card => {
+    const id = card.dataset.id;
+    if (id && id !== draggedId) {
+      const pair = [draggedId, id].sort().join('+');
+      if (COMBINE_PAIRS.has(pair)) card.classList.add('can-combine');
+    }
+  });
+}
+
+function clearDragHighlights() {
+  document.querySelectorAll('.inv-card, .room-obj, .npc-tile').forEach(el => {
+    el.classList.remove('can-combine', 'drag-over', 'dragging');
+  });
+}
+
+// ─── Rebuild inventory cards with drag events ─────────────────────────────────
+function updateInventoryCards() {
+  const grid = document.getElementById('inventory-cards');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  if (gameState.inventory.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'inv-empty';
+    empty.textContent = '（空）';
+    grid.appendChild(empty);
+    return;
+  }
+
+  gameState.inventory.forEach(id => {
+    const item = ITEMS[id];
+    if (!item) return;
+
+    const card = document.createElement('div');
+    card.className = 'inv-card';
+    card.draggable = true;
+    card.dataset.id = id;
+    card.textContent = item.name;
+    card.title = `拖移至其他物品合成，或拖移至下方物件互動\n${item.desc.substring(0, 80)}`;
+
+    // ── Drag start ──
+    card.addEventListener('dragstart', e => {
+      _draggingItemId = id;
+      e.dataTransfer.setData('text/plain', id);
+      e.dataTransfer.effectAllowed = 'all';
+      setTimeout(() => card.classList.add('dragging'), 0);
+      highlightCombinables(id);
+    });
+
+    card.addEventListener('dragend', () => {
+      _draggingItemId = null;
+      clearDragHighlights();
+    });
+
+    // ── Drop target: combine when another inv-card is dropped here ──
+    card.addEventListener('dragover', e => {
+      if (_draggingItemId && _draggingItemId !== id) {
+        const pair = [_draggingItemId, id].sort().join('+');
+        if (COMBINE_PAIRS.has(pair)) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'copy';
+        }
+      }
+    });
+
+    card.addEventListener('drop', e => {
+      e.preventDefault();
+      if (_draggingItemId && _draggingItemId !== id) {
+        const draggedId = _draggingItemId;
+        clickCmd(`combine ${draggedId} ${id}`);
+      }
+    });
+
+    // Click = examine item
+    card.addEventListener('click', () => clickCmd(`examine ${id}`));
+
+    grid.appendChild(card);
+  });
+}
+
+// ─── Rebuild all button panels ────────────────────────────────────────────────
 function updateButtons() {
   const room = currentRoom();
-  _hintIndex = 0;
-  updateHintBanner(room);
+  updateInventoryCards();
   updateDestinations(room);
   updateRoomActions(room);
 }
@@ -1723,123 +1846,65 @@ function updateRoomActions(room) {
   if (!panel) return;
   panel.innerHTML = '';
 
-  const makeBtn = (label, action, cls = '', disabled = false) => {
-    const btn = document.createElement('button');
-    btn.className = `act-btn ${cls}`;
-    btn.innerHTML = label;
-    btn.disabled = disabled;
-    if (!disabled && action) btn.onclick = action;
-    panel.appendChild(btn);
-    return btn;
-  };
-
-  const inv = gameState.inventory;
-
-  // ── Room items ──
+  // ── Floor items: take buttons ──
   (room.items || []).forEach(id => {
     const item = ITEMS[id];
     if (!item) return;
-    makeBtn(`📦 拿取 ${item.name}`, () => clickCmd(`take ${id}`), 'take-btn');
-    makeBtn(`🔍 查看 ${item.name}`, () => clickCmd(`examine ${id}`), 'exam-btn');
+    const btn = document.createElement('button');
+    btn.className = 'act-btn take-btn';
+    btn.textContent = `📦 拿取 ${item.name}`;
+    btn.onclick = () => clickCmd(`take ${id}`);
+    panel.appendChild(btn);
   });
 
-  // ── NPC ──
+  // ── NPC tile (click to talk, drag to interact) ──
   if (room.npc && NPCS[room.npc]) {
-    const npc = NPCS[room.npc];
-    const stage = gameState.npcStages[room.npc] || 0;
+    const npcKey = room.npc;
+    const npc = NPCS[npcKey];
+    const stage = gameState.npcStages[npcKey] || 0;
     const exhausted = stage >= (npc.stages || []).length;
-    makeBtn(`💬 對話：${npc.name}${exhausted ? '（已結束）' : ''}`, () => clickCmd(`talk ${room.npc}`), 'npc-btn', exhausted);
+
+    const tile = document.createElement('div');
+    tile.className = 'npc-tile' + (exhausted ? ' exhausted' : '');
+    tile.innerHTML = `<span class="npc-icon">🧑</span><span class="npc-label">${npc.name}</span><span class="npc-sub">${exhausted ? '已結束' : '點擊對話'}</span>`;
+    if (!exhausted) tile.addEventListener('click', () => clickCmd(`talk ${npcKey}`));
+
+    tile.addEventListener('dragover', e => {
+      if (_draggingItemId && !exhausted) { e.preventDefault(); tile.classList.add('drag-over'); }
+    });
+    tile.addEventListener('dragleave', () => tile.classList.remove('drag-over'));
+    tile.addEventListener('drop', e => {
+      e.preventDefault();
+      tile.classList.remove('drag-over');
+      if (!exhausted) clickCmd(`talk ${npcKey}`);
+    });
+    panel.appendChild(tile);
   }
 
-  // ── Combine buttons ──
-  const combines = [
-    { a: 'flashlight', b: 'battery', label: '🔦 組合：手電筒＋電池' },
-    { a: 'testTubeA', b: 'testTubeC', label: '🧪 組合：試管A＋試管C' },
-    { a: 'wire', b: 'fuse', label: '⚡ 組合：電線＋保險絲' },
-    { a: 'antenna', b: 'radio', label: '📻 組合：天線＋無線電' },
-  ];
-  combines.forEach(({ a, b, label }) => {
-    if (inv.includes(a) && inv.includes(b)) {
-      makeBtn(label, () => clickCmd(`combine ${a} ${b}`), 'combine-btn');
+  // ── Room interactive objects (drag targets + click) ──
+  const objs = ROOM_OBJ_MAP[room.id] || [];
+  objs.forEach(obj => {
+    const solvedPuzzle = OBJ_SOLVED_MAP[obj.id];
+    const isSolved = solvedPuzzle && gameState.solvedPuzzles.includes(solvedPuzzle);
+
+    const tile = document.createElement('div');
+    tile.className = 'room-obj' + (isSolved ? ' solved' : '');
+    tile.innerHTML = `<span class="obj-icon">${obj.icon}</span><span class="obj-label">${obj.label}</span>`;
+    tile.title = isSolved ? '（已完成）' : '點擊互動，或將物品拖移至此';
+
+    if (!isSolved) {
+      tile.addEventListener('click', () => handleRoomObjClick(obj.id));
+      tile.addEventListener('dragover', e => {
+        if (_draggingItemId) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; tile.classList.add('drag-over'); }
+      });
+      tile.addEventListener('dragleave', () => tile.classList.remove('drag-over'));
+      tile.addEventListener('drop', e => {
+        e.preventDefault();
+        tile.classList.remove('drag-over');
+        if (_draggingItemId) handleItemDropOnObject(_draggingItemId, obj.id);
+      });
     }
-  });
-
-  // ── Room-specific puzzle buttons ──
-  const rId = room.id;
-
-  if (rId === 'room1' && !gameState.solvedPuzzles.includes('safePuzzle')) {
-    makeBtn('🔐 打開保險箱', () => openCodeModal('safe', '保險箱', '提示：查看紙條上的數字（四位數）'), 'puzzle-btn');
-  }
-  if (rId === 'lab' && !gameState.solvedPuzzles.includes('labBoxPuzzle')) {
-    makeBtn('🔐 打開密碼箱', () => openCodeModal('labbox', '實驗室密碼箱', '提示：查看實驗日誌（四位數）'), 'puzzle-btn');
-  }
-  if (rId === 'cipherRoom' && !gameState.solvedPuzzles.includes('cipherPuzzle')) {
-    makeBtn('🔐 打開密碼鎖', () => openCodeModal('cipherlock', '六位密碼鎖', '提示：與五位NPC對話，各獲得1-2位數字'), 'puzzle-btn');
-  }
-  if (rId === 'escapeRoute' && !gameState.solvedPuzzles.includes('fireDoorPuzzle')) {
-    makeBtn('🔐 輸入防火門密碼', () => openCodeModal('firedoor', '防火門', '提示：查看走廊的藍圖（四位數）'), 'puzzle-btn');
-  }
-  if (rId === 'finalCipherRoom' && !gameState.solvedPuzzles.includes('finalPuzzle')) {
-    makeBtn('🔐 輸入最終密碼', () => openCodeModal('finallock', '最終密碼鎖', '提示：在主機房分別用USB和硬碟讀取（八位數）'), 'puzzle-btn');
-  }
-  if (rId === 'exitHall') {
-    const hasKey = inv.includes('finalKey');
-    makeBtn('🚪 使用最終鑰匙逃脫！', () => clickCmd('use finalKey exit'), 'puzzle-btn exit-btn', !hasKey);
-  }
-  if (rId === 'generatorRoom' && !gameState.solvedPuzzles.includes('generatorPuzzle')) {
-    const hasWire = inv.includes('repairedWire');
-    makeBtn('⚡ 啟動發電機', () => clickCmd('use repairedWire generator'), 'puzzle-btn', !hasWire);
-  }
-  if (rId === 'controlRoom' && !gameState.solvedPuzzles.includes('controlPuzzle')) {
-    const ok = inv.includes('screwdriver') && gameState.flags.powerRestored;
-    makeBtn('🔧 拆開控制面板', () => clickCmd('use screwdriver panel'), 'puzzle-btn', !ok);
-  }
-  if (rId === 'library' && !gameState.solvedPuzzles.includes('bookshelfPuzzle')) {
-    const hasLight = inv.includes('fixedFlashlight');
-    makeBtn('🔦 用手電筒照射書架', () => clickCmd('use fixedFlashlight bookshelf'), 'puzzle-btn', !hasLight);
-  }
-  if (rId === 'medRoom' && !gameState.solvedPuzzles.includes('mirrorPuzzle')) {
-    const hasLight = inv.includes('fixedFlashlight');
-    makeBtn('🔦 用手電筒照射鏡子', () => clickCmd('use fixedFlashlight mirror'), 'puzzle-btn', !hasLight);
-  }
-  if (rId === 'observeRoom' && !gameState.solvedPuzzles.includes('tapePuzzle')) {
-    const hasTape = inv.includes('tape') || room.items.includes('tape');
-    makeBtn('▶ 播放錄音帶', () => clickCmd('use tape recorder'), 'puzzle-btn', !hasTape);
-  }
-  if (rId === 'commRoom' && !gameState.solvedPuzzles.includes('radioPuzzle')) {
-    const hasRadio = inv.includes('activeRadio');
-    makeBtn('📻 使用無線電', () => clickCmd('use activeRadio'), 'puzzle-btn', !hasRadio);
-  }
-  if (rId === 'mainframeRoom' && !gameState.solvedPuzzles.includes('mainframePuzzle')) {
-    if (inv.includes('usb')) makeBtn('💾 插入 USB 讀取資料', () => clickCmd('use usb mainframe'), 'puzzle-btn');
-    if (inv.includes('hardDrive')) makeBtn('💽 連接硬碟讀取資料', () => clickCmd('use hardDrive mainframe'), 'puzzle-btn');
-  }
-  if (rId === 'abandonedHallway' && !gameState.solvedPuzzles.includes('brickWallPuzzle')) {
-    makeBtn('🧱 仔細檢查磚牆', () => clickCmd('examine brickwall'), 'puzzle-btn');
-  }
-  if (rId === 'deepUnderground' && !gameState.solvedPuzzles.includes('containerPuzzle')) {
-    makeBtn('📦 打開金屬容器', () => clickCmd('open container'), 'puzzle-btn');
-  }
-  if (rId === 'archive' && !gameState.solvedPuzzles.includes('keypadPuzzle')) {
-    const hasId = inv.includes('idCard');
-    makeBtn('🔑 刷識別證開密室門', () => clickCmd('use idCard keypad'), 'puzzle-btn', !hasId);
-  }
-  if (rId === 'storage' && !gameState.solvedPuzzles.includes('musicBoxPuzzle')) {
-    makeBtn('🎵 打開音樂盒', () => clickCmd('examine musicbox'), 'puzzle-btn');
-  }
-  if (rId === 'vaultRoom' && !gameState.solvedPuzzles.includes('vaultPuzzle')) {
-    makeBtn('💙 檢查藍色裝置', () => clickCmd('examine bluelightdevice'), 'puzzle-btn');
-  }
-  if (rId === 'labB' && !gameState.solvedPuzzles.includes('decoderPuzzle')) {
-    const ok = inv.includes('decoder') && inv.includes('cipherPaper');
-    makeBtn('🔓 用解碼器解讀密碼紙', () => clickCmd('use decoder cipherpaper'), 'puzzle-btn', !ok);
-  }
-
-  // ── Inventory examine buttons ──
-  inv.forEach(id => {
-    const item = ITEMS[id];
-    if (!item) return;
-    makeBtn(`🔍 查看 ${item.name}`, () => clickCmd(`examine ${id}`), 'inv-btn');
+    panel.appendChild(tile);
   });
 }
 
