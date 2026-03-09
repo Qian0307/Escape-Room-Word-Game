@@ -124,6 +124,38 @@
     </div>
   </div>
 
+  <!-- ===== MOBILE PANEL (above nav bar, shown only on mobile) ===== -->
+  <div id="mobile-panel">
+    <div id="mp-move"   class="mp-section active"></div>
+    <div id="mp-items"  class="mp-section"></div>
+    <div id="mp-action" class="mp-section"></div>
+    <div id="mp-tools"  class="mp-section">
+      <button class="act-btn mtool-btn" onclick="clickCmd('look')">🔍 環顧四周</button>
+      <button class="act-btn mtool-btn hint-btn" onclick="clickCmd('hint')">💡 提示</button>
+      <button class="act-btn mtool-btn" onclick="clickCmd('map')">🗺️ 地圖</button>
+      <button class="act-btn mtool-btn" onclick="clickCmd('save')">💾 儲存</button>
+      <button class="act-btn mtool-btn" onclick="clickCmd('load')">📂 讀取</button>
+      <button class="act-btn mtool-btn" onclick="showTutorial()" style="opacity:0.7;">📖 教學</button>
+    </div>
+  </div>
+
+  <!-- ===== MOBILE NAV BAR ===== -->
+  <nav id="mobile-nav">
+    <button class="mnav-btn active" data-tab="move" onclick="mobileTab('move')">
+      <span class="mnav-icon">🚪</span><span class="mnav-label">移動</span>
+    </button>
+    <button class="mnav-btn" data-tab="items" onclick="mobileTab('items')">
+      <span class="mnav-icon">🎒</span><span class="mnav-label">物品</span>
+      <span class="mnav-badge" id="badge-items"></span>
+    </button>
+    <button class="mnav-btn" data-tab="action" onclick="mobileTab('action')">
+      <span class="mnav-icon">⚡</span><span class="mnav-label">行動</span>
+    </button>
+    <button class="mnav-btn" data-tab="tools" onclick="mobileTab('tools')">
+      <span class="mnav-icon">🔧</span><span class="mnav-label">工具</span>
+    </button>
+  </nav>
+
   <!-- ===== GAME SCRIPT ===== -->
   <script src="game.js"></script>
 

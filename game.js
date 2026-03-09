@@ -1159,6 +1159,8 @@ function checkAllNpcsTalked() {
 
 // ─── Room Description ────────────────────────────────────────────────────────
 function describeRoom(verbose) {
+  // On mobile, switch to move tab when entering a new room
+  if (isMobile() && _activeMobileTab !== 'move') mobileTab('move');
   const room = currentRoom();
   if (!gameState.visitedRooms) gameState.visitedRooms = [];
   if (!gameState.visitedRooms.includes(gameState.currentRoom)) {
@@ -1855,7 +1857,228 @@ function updateButtons() {
   updateInventoryCards();
   updateDestinations(room);
   updateRoomActions(room);
+  updateMobilePanel();
 }
+
+// ─── Mobile panel system ──────────────────────────────────────────────────────
+let _activeMobileTab = 'move';
+let _mobileSelectedItem = null;
+
+function isMobile() { return window.innerWidth <= 680; }
+
+function mobileTab(tab) {
+  _activeMobileTab = tab;
+  document.querySelectorAll('.mnav-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
+  });
+  document.querySelectorAll('.mp-section').forEach(sec => {
+    sec.classList.toggle('active', sec.id === 'mp-' + tab);
+  });
+  if (tab !== 'items') clearMobileSelection();
+}
+window.mobileTab = mobileTab;
+
+function clearMobileSelection() {
+  _mobileSelectedItem = null;
+  document.querySelectorAll('.m-selected, .m-highlight').forEach(el => {
+    el.classList.remove('m-selected', 'm-highlight');
+  });
+}
+
+function updateMobilePanel() {
+  if (!isMobile()) return;
+  const room = currentRoom();
+  _buildMobileMove(room);
+  _buildMobileItems(room);
+  _buildMobileAction(room);
+  _updateMobileBadge(room);
+}
+
+function _updateMobileBadge(room) {
+  const badge = document.getElementById('badge-items');
+  if (!badge) return;
+  const hasItems = (room.items || []).some(id => ITEMS[id]);
+  badge.classList.toggle('show', hasItems);
+}
+
+function _buildMobileMove(room) {
+  const panel = document.getElementById('mp-move');
+  if (!panel) return;
+  panel.innerHTML = '';
+
+  const arrows   = { north:'▲', south:'▼', east:'▶', west:'◀', up:'⬆', down:'⬇' };
+  const dirNames = { north:'北', south:'南', east:'東', west:'西', up:'上', down:'下' };
+
+  const makeDestBtn = (dir, destRoomId, locked, hasKey) => {
+    const destRoom = ROOMS[destRoomId];
+    if (!destRoom) return;
+    const btn = document.createElement('button');
+    btn.className = 'mdest-btn' + (locked ? ' mdest-locked' : '');
+    btn.disabled = locked;
+    btn.innerHTML =
+      `<span class="mdest-arrow">${arrows[dir] || dir}</span>` +
+      `<span class="mdest-dir">${dirNames[dir] || dir}</span>` +
+      `<span class="mdest-name">${locked ? '🔒 ' : ''}${destRoom.name}</span>`;
+    if (!locked) btn.onclick = () => clickCmd('go ' + dir);
+    panel.appendChild(btn);
+  };
+
+  Object.entries(room.exits || {}).forEach(([dir, dest]) => {
+    const destRoom = ROOMS[dest];
+    if (!destRoom) return;
+    const locked = (dest === 'escapeRoute' && ROOMS.escapeRoute.locked) ||
+                   (destRoom.locked && !gameState.unlockedRooms.includes(dest));
+    makeDestBtn(dir, dest, locked);
+  });
+
+  Object.entries(room.lockedExits || {}).forEach(([dir, lock]) => {
+    const hasKey = gameState.inventory.includes(lock.requires) ||
+                   (lock.altItem && gameState.inventory.includes(lock.altItem));
+    makeDestBtn(dir, lock.room, !hasKey, hasKey);
+  });
+
+  if (panel.children.length === 0) {
+    panel.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:16px 0;width:100%;text-align:center;">沒有可前往的地點</div>';
+  }
+}
+
+function _buildMobileItems(room) {
+  const panel = document.getElementById('mp-items');
+  if (!panel) return;
+  panel.innerHTML = '';
+
+  const invItems = gameState.inventory.filter(id => ITEMS[id]);
+  const roomItems = (room.items || []).filter(id => ITEMS[id]);
+
+  if (invItems.length > 0) {
+    const lbl = document.createElement('div');
+    lbl.className = 'mp-label';
+    lbl.textContent = '🎒 背包 — 點擊選取，再點行動頁合成/使用';
+    panel.appendChild(lbl);
+
+    const grid = document.createElement('div');
+    grid.className = 'mp-inv-grid';
+    invItems.forEach(id => {
+      const card = document.createElement('div');
+      card.className = 'inv-card mobile-inv-card';
+      card.dataset.id = id;
+      card.textContent = ITEMS[id].name;
+      // restore selection highlight if item was previously selected
+      if (_mobileSelectedItem === id) card.classList.add('m-selected');
+      card.addEventListener('click', () => _mobileTapItem(id));
+      grid.appendChild(card);
+    });
+    panel.appendChild(grid);
+  }
+
+  if (roomItems.length > 0) {
+    const lbl = document.createElement('div');
+    lbl.className = 'mp-label';
+    lbl.textContent = '📦 房間物品';
+    panel.appendChild(lbl);
+    roomItems.forEach(id => {
+      const btn = document.createElement('button');
+      btn.className = 'act-btn take-btn';
+      btn.style.width = '100%';
+      btn.textContent = `📦 拿取 ${ITEMS[id].name}`;
+      btn.onclick = () => { clickCmd('take ' + id); };
+      panel.appendChild(btn);
+    });
+  }
+
+  if (invItems.length === 0 && roomItems.length === 0) {
+    panel.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:16px 0;width:100%;text-align:center;">背包是空的，且房間沒有可拾取的物品</div>';
+  }
+}
+
+function _buildMobileAction(room) {
+  const panel = document.getElementById('mp-action');
+  if (!panel) return;
+  panel.innerHTML = '';
+
+  if (room.npc && NPCS[room.npc]) {
+    const npcKey = room.npc;
+    const npc = NPCS[npcKey];
+    const exhausted = (gameState.npcStages[npcKey] || 0) >= npc.stages.length;
+    const tile = document.createElement('div');
+    tile.className = 'npc-tile' + (exhausted ? ' exhausted' : '');
+    tile.id = 'mob-npc-' + npcKey;
+    tile.innerHTML = `<span class="npc-icon">🧑</span><span class="npc-label">${npc.name}</span><span class="npc-sub">${exhausted ? '已結束' : '點擊對話'}</span>`;
+    if (!exhausted) tile.addEventListener('click', () => { clickCmd('talk ' + npcKey); clearMobileSelection(); });
+    panel.appendChild(tile);
+  }
+
+  const objs = ROOM_OBJ_MAP[room.id] || [];
+  objs.forEach(obj => {
+    const isSolved = OBJ_SOLVED_MAP[obj.id] && gameState.solvedPuzzles.includes(OBJ_SOLVED_MAP[obj.id]);
+    const tile = document.createElement('div');
+    tile.className = 'room-obj' + (isSolved ? ' solved' : '');
+    tile.id = 'mob-obj-' + obj.id;
+    tile.innerHTML = `<span class="obj-icon">${obj.icon}</span><span class="obj-label">${obj.label}</span>`;
+    if (!isSolved) tile.addEventListener('click', () => _mobileUseOnObject(obj.id));
+    panel.appendChild(tile);
+  });
+
+  if (!room.npc && objs.length === 0) {
+    panel.innerHTML = '<div style="color:var(--text-muted);font-size:12px;padding:16px 0;width:100%;text-align:center;">這裡沒有可互動的人或物件</div>';
+  }
+
+  // Re-apply m-highlight if an item is selected
+  if (_mobileSelectedItem) _applyMobileHighlights(_mobileSelectedItem);
+}
+
+function _mobileTapItem(id) {
+  // If tapping a highlighted (combinable) item while another is selected → combine
+  if (_mobileSelectedItem && _mobileSelectedItem !== id) {
+    const pair = [_mobileSelectedItem, id].sort().join('+');
+    if (COMBINE_PAIRS.has(pair)) {
+      clickCmd('combine ' + _mobileSelectedItem + ' ' + id);
+      clearMobileSelection();
+      return;
+    }
+  }
+  // Toggle selection
+  if (_mobileSelectedItem === id) {
+    clearMobileSelection();
+    return;
+  }
+  clearMobileSelection();
+  _mobileSelectedItem = id;
+  // Highlight selected card
+  document.querySelectorAll('.mobile-inv-card').forEach(card => {
+    if (card.dataset.id === id) card.classList.add('m-selected');
+  });
+  _applyMobileHighlights(id);
+  print(`已選取「${ITEMS[id] ? ITEMS[id].name : id}」— 切換至【行動】頁可使用，或點擊另一個發光物品來合成。`, 'hint');
+}
+
+function _applyMobileHighlights(id) {
+  // Highlight combinable inventory cards
+  gameState.inventory.forEach(otherId => {
+    if (otherId !== id) {
+      const pair = [id, otherId].sort().join('+');
+      if (COMBINE_PAIRS.has(pair)) {
+        document.querySelectorAll('.mobile-inv-card').forEach(card => {
+          if (card.dataset.id === otherId) card.classList.add('m-highlight');
+        });
+      }
+    }
+  });
+  // Highlight all room objects in action panel
+  document.querySelectorAll('#mp-action .room-obj:not(.solved)').forEach(el => {
+    el.classList.add('m-highlight');
+  });
+}
+
+function _mobileUseOnObject(objectId) {
+  if (_mobileSelectedItem) {
+    handleItemDropOnObject(_mobileSelectedItem, objectId);
+    clearMobileSelection();
+  } else {
+    handleRoomObjClick(objectId);
+  }
+}
+window._mobileUseOnObject = _mobileUseOnObject;
 
 function updateDestinations(room) {
   const panel = document.getElementById('destinations');

@@ -984,5 +984,212 @@ html, body {
 ::-webkit-scrollbar-track  { background: var(--bg); }
 ::-webkit-scrollbar-thumb  { background: var(--border-light); border-radius: 3px; }
 
-/* ===== RESPONSIVE ===== */
-@media (max-width: 680px) { #sidebar { display: none; } }
+/* ===== MOBILE NAV / PANEL — hidden on desktop ===== */
+#mobile-nav   { display: none; }
+#mobile-panel { display: none; }
+
+/* ===== MOBILE RESPONSIVE (≤ 680px) ===== */
+@media (max-width: 680px) {
+
+  /* -- Layout: column flex, no overflow -- */
+  html, body { overflow: hidden; }
+
+  /* -- Hide desktop-only elements -- */
+  #sidebar       { display: none; }
+  #action-panel  { display: none; }
+
+  /* -- Header compact -- */
+  #header        { height: 40px; padding: 0 10px; }
+  #game-title    { font-size: 12px; letter-spacing: 1px; }
+  #timer-display { font-size: 12px; }
+  #timer         { font-size: 13px; }
+
+  /* -- Story panel: no right border, smaller padding -- */
+  #main-layout   { min-height: 0; }
+  #story-panel   { border-right: none; padding: 8px 12px; }
+
+  /* -- Font adjustments -- */
+  :root { --font-size: 15px; }
+  .output-line.room-title { font-size: 17px; }
+  .output-line.room-desc  { font-size: 15px; }
+  .output-line.ascii-art  { font-size: 7px; }
+
+  /* ── Mobile Panel (above nav) ── */
+  #mobile-panel {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-panel);
+    border-top: 1px solid var(--border);
+    height: 168px;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .mp-section {
+    display: none;
+    padding: 7px 8px;
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex-wrap: wrap;
+    gap: 5px;
+    align-content: flex-start;
+  }
+  .mp-section.active { display: flex; }
+
+  /* Sub-headers inside panels */
+  .mp-label {
+    width: 100%;
+    color: var(--text-muted);
+    font-size: 10px;
+    letter-spacing: 1px;
+    padding-bottom: 3px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2px;
+  }
+
+  /* Inventory grid inside mp-items */
+  .mp-inv-grid {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+    gap: 5px;
+  }
+
+  /* ── Mobile Nav Bar ── */
+  #mobile-nav {
+    display: flex;
+    height: 52px;
+    background: var(--bg-panel);
+    border-top: 2px solid var(--border);
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .mnav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    background: transparent;
+    border: none;
+    border-top: 2px solid transparent;
+    color: var(--text-muted);
+    font-family: var(--font);
+    cursor: pointer;
+    padding: 3px 2px;
+    transition: all 0.15s;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mnav-btn.active {
+    color: var(--accent);
+    border-top-color: var(--accent);
+    background: rgba(88,166,255,0.07);
+  }
+  .mnav-icon  { font-size: 17px; line-height: 1; }
+  .mnav-label { font-size: 10px; }
+
+  /* Badge on 物品 tab */
+  .mnav-badge {
+    position: absolute;
+    top: 5px; right: calc(50% - 18px);
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    display: none;
+  }
+  .mnav-badge.show { display: block; }
+
+  /* ── Mobile destination buttons (in mp-move) ── */
+  .mdest-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 76px;
+    min-height: 64px;
+    padding: 4px 6px;
+    gap: 1px;
+    border: 1px solid var(--accent);
+    background: var(--bg-btn);
+    color: var(--accent);
+    font-family: var(--font);
+    font-size: 10px;
+    text-align: center;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.12s;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mdest-btn:active:not(:disabled) { background: rgba(88,166,255,0.15); }
+  .mdest-btn.mdest-locked {
+    border-color: var(--red);
+    color: var(--red);
+    opacity: 0.35;
+  }
+  .mdest-arrow { font-size: 20px; line-height: 1; }
+  .mdest-dir   { font-size: 13px; font-weight: bold; }
+  .mdest-name  { font-size: 10px; color: var(--text-dim); max-width: 80px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ── Mobile tool buttons (in mp-tools) ── */
+  .mtool-btn {
+    min-height: 44px;
+    padding: 8px 12px;
+    font-size: 13px;
+    text-align: left;
+    flex: 0 0 auto;
+  }
+
+  /* ── Tap-select states (mobile combine flow) ── */
+  .inv-card.m-selected {
+    border-color: var(--yellow);
+    background: rgba(210,153,34,0.15);
+    box-shadow: 0 0 8px rgba(210,153,34,0.4);
+  }
+  .inv-card.m-highlight,
+  .room-obj.m-highlight {
+    border-color: var(--purple);
+    background: rgba(210,168,255,0.12);
+    box-shadow: 0 0 8px rgba(210,168,255,0.5);
+    animation: pulse-combine 0.7s ease-in-out infinite alternate;
+  }
+
+  /* ── Touch-friendly tap areas for action tiles ── */
+  .npc-tile  { min-height: 60px; min-width: 80px; }
+  .room-obj  { min-height: 60px; min-width: 76px; }
+  .take-btn  { min-height: 42px; padding: 10px; }
+  .act-btn   { min-height: 40px; }
+
+  /* ── Modals: full-width on mobile ── */
+  #code-box {
+    min-width: unset;
+    width: calc(100vw - 28px);
+    padding: 20px 18px;
+  }
+  #code-input { font-size: 22px; padding: 10px 6px; }
+
+  #tutorial-overlay { padding: 12px 8px; }
+  #tutorial-box {
+    padding: 18px 14px;
+    width: calc(100vw - 24px);
+  }
+  #tutorial-content { font-size: 13px; }
+  #tutorial-demo    { padding: 10px; margin-bottom: 14px; }
+
+  #map-modal  { padding: 10px 6px; }
+  #map-box    { padding: 14px 10px; width: 100%; }
+  #map-legend { gap: 8px; }
+  .ml         { font-size: 11px; padding: 2px 7px; }
+
+  #ending-overlay { padding: 16px 10px; }
+  #ending-box     { padding: 20px 14px; width: 100%; }
+  #ending-title   { font-size: 20px; }
+  #ending-text    { font-size: 13px; line-height: 1.75; }
+  #ending-walkthrough { font-size: 12px; }
+  #ending-restart { padding: 10px 20px; font-size: 14px; }
+}
