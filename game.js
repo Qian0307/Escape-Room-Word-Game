@@ -25,6 +25,7 @@ let gameState = {
   secretsFound: 0,
   npcStages: { guard: 0, scientist: 0, mysteriousWoman: 0, oldMan: 0, ghost: 0 },
   unlockedRooms: [],
+  visitedRooms: ['room1'],
   flags: {
     powerRestored: false,
     bookshelfSolved: false,
@@ -1154,6 +1155,10 @@ function checkAllNpcsTalked() {
 // ─── Room Description ────────────────────────────────────────────────────────
 function describeRoom(verbose) {
   const room = currentRoom();
+  if (!gameState.visitedRooms) gameState.visitedRooms = [];
+  if (!gameState.visitedRooms.includes(gameState.currentRoom)) {
+    gameState.visitedRooms.push(gameState.currentRoom);
+  }
   printSeparator();
   print(`【${room.name}】`, 'room-title');
   print(room.desc, 'room-desc');
@@ -1532,23 +1537,67 @@ function cmdHelp() {
   printSeparator();
 }
 
+const MAP_ZONES = [
+  { label: '■ 入口區', rooms: ['room1'] },
+  { label: '■ 主走廊', rooms: ['hallway', 'storage', 'observeRoom', 'medRoom'] },
+  { label: '■ 實驗區', rooms: ['lab', 'labB', 'mainframeRoom'] },
+  { label: '■ 地下層', rooms: ['underground', 'generatorRoom', 'abandonedHallway', 'deepUnderground', 'vaultRoom'] },
+  { label: '■ 秘密區', rooms: ['archive', 'secretArchive', 'library', 'hiddenRoom'] },
+  { label: '■ 管制區', rooms: ['controlRoom', 'commRoom', 'cipherRoom', 'securityRoom', 'restRoom'] },
+  { label: '■ 逃生路線', rooms: ['escapeRoute', 'finalCipherRoom', 'exitHall'] },
+];
+
 function showMap() {
-  printSeparator();
-  print('【設施地圖】', 'map-title');
-  print('  ┌─────────────┬─────────────┐', 'map');
-  print('  │  儲藏室(上)  │   觀察室    │', 'map');
-  print('  └──────┬──────┘  醫療室──┘  │', 'map');
-  print('  ┌──────┴──────┐             │', 'map');
-  print('  │   走廊(中樞) │──實驗室─────┘', 'map');
-  print('  └──┬───┬───┬──┘  └─實驗室B─主機房', 'map');
-  print('  檔案室 圖書室 地下走廊     ', 'map');
-  print('  └─秘密 └─隱藏 └──廢棄走廊─深層', 'map');
-  print('     檔案室 房間 │  └─保險庫 地下室', 'map');
-  print('              發電機房', 'map');
-  print('  控制室─通訊室─密碼室', 'map');
-  print('  └─逃生通道─最終密碼室─出口大廳', 'map');
-  printSeparator();
+  const modal = document.getElementById('map-modal');
+  const grid  = document.getElementById('map-grid');
+  if (!modal || !grid) return;
+
+  if (!gameState.visitedRooms) gameState.visitedRooms = [];
+  grid.innerHTML = '';
+
+  MAP_ZONES.forEach(zone => {
+    const zoneEl = document.createElement('div');
+    zoneEl.className = 'map-zone';
+
+    const labelEl = document.createElement('div');
+    labelEl.className = 'map-zone-label';
+    labelEl.textContent = zone.label;
+    zoneEl.appendChild(labelEl);
+
+    const rowEl = document.createElement('div');
+    rowEl.className = 'map-rooms-row';
+
+    zone.rooms.forEach(roomId => {
+      const room = ROOMS[roomId];
+      if (!room) return;
+      const isCurrent = gameState.currentRoom === roomId;
+      const isVisited = gameState.visitedRooms.includes(roomId);
+      const isLocked  = room.locked && !gameState.unlockedRooms.includes(roomId);
+
+      const el = document.createElement('div');
+      let cls = 'map-room';
+      if (isCurrent)     cls += ' map-current';
+      else if (isLocked) cls += ' map-locked';
+      else if (isVisited)cls += ' map-visited';
+      el.className = cls;
+
+      const icon = isCurrent ? '▶ ' : isLocked ? '🔒 ' : isVisited ? '✓ ' : '○ ';
+      el.textContent = icon + room.name;
+      rowEl.appendChild(el);
+    });
+
+    zoneEl.appendChild(rowEl);
+    grid.appendChild(zoneEl);
+  });
+
+  modal.classList.add('show');
 }
+
+function closeMapModal() {
+  const modal = document.getElementById('map-modal');
+  if (modal) modal.classList.remove('show');
+}
+window.closeMapModal = closeMapModal;
 
 function cmdSave() {
   try {
@@ -1953,6 +2002,7 @@ function handleCommand(input) {
       print(`不認識的指令「${cmd}」。輸入 help 查看可用指令。`, 'error');
   }
 
+  updateSidebar();
   autoSave();
 }
 
