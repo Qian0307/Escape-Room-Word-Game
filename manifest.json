@@ -1,0 +1,20 @@
+{
+  "name": "密室逃脫：幽靈計畫",
+  "short_name": "幽靈計畫",
+  "description": "互動式敘事密室逃脫遊戲，扮演記者林哲宇揭開X-17設施的黑暗真相。",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "orientation": "portrait-primary",
+  "background_color": "#0d1117",
+  "theme_color": "#0d1117",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%230d1117'/><text y='68' x='10' font-size='70'>🔐</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["games", "entertainment"],
+  "lang": "zh-TW"
+}

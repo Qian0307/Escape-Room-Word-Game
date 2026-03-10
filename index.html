@@ -2,7 +2,12 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="幽靈計畫" />
+  <meta name="theme-color" content="#0d1117" />
+  <link rel="manifest" href="manifest.json" />
   <title>密室逃脫 — 幽靈計畫</title>
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -61,6 +66,8 @@
       <button class="act-btn quick-btn" onclick="clickCmd('map')">🗺 地圖</button>
       <button class="act-btn quick-btn" onclick="clickCmd('save')">💾 儲存</button>
       <button class="act-btn quick-btn" onclick="clickCmd('load')">📂 讀取</button>
+      <button class="act-btn quick-btn" onclick="cmdExport()" title="匯出存檔文字，可跨裝置使用">📤 匯出</button>
+      <button class="act-btn quick-btn" onclick="cmdImport()" title="貼入存檔文字讀取進度">📥 匯入</button>
       <button class="act-btn quick-btn" onclick="showTutorial()" style="font-size:11px;opacity:0.7;">📖 教學</button>
     </div>
 
@@ -76,6 +83,20 @@
       <div id="code-desc"></div>
       <input id="code-input" type="text" inputmode="numeric" pattern="[0-9]*"
              placeholder="輸入數字密碼…" autocomplete="off" />
+      <div id="code-numpad">
+        <button class="np-btn" onclick="codeNumpad('1')">1</button>
+        <button class="np-btn" onclick="codeNumpad('2')">2</button>
+        <button class="np-btn" onclick="codeNumpad('3')">3</button>
+        <button class="np-btn" onclick="codeNumpad('4')">4</button>
+        <button class="np-btn" onclick="codeNumpad('5')">5</button>
+        <button class="np-btn" onclick="codeNumpad('6')">6</button>
+        <button class="np-btn" onclick="codeNumpad('7')">7</button>
+        <button class="np-btn" onclick="codeNumpad('8')">8</button>
+        <button class="np-btn" onclick="codeNumpad('9')">9</button>
+        <button class="np-btn np-clear" onclick="codeNumpadClear()">C</button>
+        <button class="np-btn" onclick="codeNumpad('0')">0</button>
+        <button class="np-btn np-del" onclick="codeNumpadDel()">⌫</button>
+      </div>
       <div id="code-btns">
         <button id="code-cancel" onclick="closeCodeModal()">✕ 取消</button>
         <button id="code-confirm" onclick="confirmCode()">✔ 確認</button>
@@ -114,6 +135,22 @@
     </div>
   </div>
 
+  <!-- ===== EXPORT / IMPORT MODAL ===== -->
+  <div id="saveio-modal">
+    <div id="saveio-box">
+      <div id="saveio-title">存檔</div>
+      <textarea id="saveio-text" spellcheck="false"></textarea>
+      <div id="saveio-btns">
+        <button onclick="closeSaveIO()">✕ 關閉</button>
+        <button id="saveio-copy-btn"   onclick="copySaveText()">📋 複製</button>
+        <button id="saveio-import-btn" onclick="importSaveText()">📂 匯入</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ROOM TRANSITION FLASH ===== -->
+  <div id="room-transition"></div>
+
   <!-- ===== ENDING OVERLAY ===== -->
   <div id="ending-overlay">
     <div id="ending-box">
@@ -135,6 +172,8 @@
       <button class="act-btn mtool-btn" onclick="clickCmd('map')">🗺️ 地圖</button>
       <button class="act-btn mtool-btn" onclick="clickCmd('save')">💾 儲存</button>
       <button class="act-btn mtool-btn" onclick="clickCmd('load')">📂 讀取</button>
+      <button class="act-btn mtool-btn" onclick="cmdExport()">📤 匯出存檔</button>
+      <button class="act-btn mtool-btn" onclick="cmdImport()">📥 匯入存檔</button>
       <button class="act-btn mtool-btn" onclick="showTutorial()" style="opacity:0.7;">📖 教學</button>
     </div>
   </div>

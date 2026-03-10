@@ -224,6 +224,18 @@ const ITEMS = {
     name: '幽靈檔案',
     desc: '一份標記著「絕對機密」的檔案，記錄著這個設施進行的非法實驗，以及失蹤人員的名單。閱讀後你感到一陣寒意。',
   },
+  caseReport: {
+    name: '案例報告',
+    desc: '一份厚重的案例報告，部分頁面已被刻意撕去。剩餘的頁面以冰冷的數字記錄著受試者的反應數據——「樣本B-07：第三週意識消退，第五週無反應」。你無法繼續讀下去。',
+  },
+  lipstickCup: {
+    name: '口紅杯',
+    desc: '一個陶瓷咖啡杯，杯沿有一道清晰的口紅印。你翻過杯底，發現有人用口紅寫著兩個工整的數字。這個人想讓某個後來者看到這些數字，用她能用的唯一方式。',
+  },
+  metalContainer: {
+    name: '金屬容器',
+    desc: '一個厚重的密封金屬容器，表面標記著「BX-17 / 永久保存」。容器做工精密，封閉嚴實。吳明遠說過的話浮上心頭：失蹤的人，他們的身體還在這裡。你的手放在容器蓋上，遲遲無法用力。',
+  },
 };
 
 // ─── Rooms ──────────────────────────────────────────────────────────────────
@@ -363,10 +375,9 @@ const ROOMS = {
   restRoom: {
     id: 'restRoom',
     name: '休息室',
-    desc: '員工休息室裡有幾把磨損的沙發和一張咖啡桌。桌上有一個口紅染色的咖啡杯，杯底留著些什麼。牆上掛著一個月曆，日期停在幾年前的某一天。一個封好的信封被壓在一本雜誌下面，上面沒有任何標記。一把通往走廊的梯子靠在牆邊。',
+    desc: '員工休息室裡有幾把磨損的沙發和一張咖啡桌。桌上有一個口紅染色的咖啡杯，杯底留著些什麼。牆上掛著一個月曆，日期停在幾年前的某一天——某人最後一次在這裡喝咖啡的那天。一個封好的信封被壓在一本雜誌下面，上面沒有任何標記。',
     items: ['envelope', 'lipstickCup'],
     exits: { down: 'hallway' },
-    npc: 'oldMan',
     puzzles: ['cupPuzzle'],
     hints: ['那個口紅杯底有東西——仔細檢查它。', '信封裡可能藏有線索。'],
   },
@@ -1436,10 +1447,9 @@ function cmdGo(args) {
 
   gameState.currentRoom = dest;
 
-  // Special room transitions
-  if (dest === 'restRoom' && gameState.npcStages.oldMan >= 1) {
-    ROOMS.restRoom.npc = 'oldMan';
-  }
+  // Room transition flash
+  const _tr = document.getElementById('room-transition');
+  if (_tr) { _tr.classList.add('active'); setTimeout(() => _tr.classList.remove('active'), 220); }
 
   describeRoom();
   autoSave();
@@ -1590,6 +1600,21 @@ function showMap() {
 
       const icon = isCurrent ? '▶ ' : isLocked ? '🔒 ' : isVisited ? '✓ ' : '○ ';
       el.textContent = icon + room.name;
+
+      // Fast travel: click visited (non-current, non-locked) rooms
+      if (isVisited && !isCurrent && !isLocked) {
+        el.classList.add('map-clickable');
+        el.title = '點擊快速傳送';
+        el.addEventListener('click', () => {
+          closeMapModal();
+          gameState.currentRoom = roomId;
+          const _tr = document.getElementById('room-transition');
+          if (_tr) { _tr.classList.add('active'); setTimeout(() => _tr.classList.remove('active'), 220); }
+          describeRoom();
+          autoSave();
+        });
+      }
+
       rowEl.appendChild(el);
     });
 
@@ -2219,6 +2244,8 @@ function handleCommand(input) {
     case 'map': showMap(); break;
     case 'save': cmdSave(); break;
     case 'load': cmdLoad(); break;
+    case 'export': cmdExport(); break;
+    case 'import': cmdImport(); break;
     case 'solve': case 'puzzle': {
       // Direct puzzle solving shortcut: solve [puzzleId] [args...]
       const pId = args[0];
@@ -2307,25 +2334,51 @@ const TUTORIAL_STEPS = [
   },
   {
     icon: '⚗️',
-    title: '合成物品：拖移卡片',
-    content: '物品欄的卡片可以互相拖移來合成新道具。\n\n① 按住一張卡片不放\n② 拖移到另一張卡片上面\n③ 看到紫色光暈 → 鬆開滑鼠即完成合成\n\n範例：把「電池」拖移到「手電筒」上，\n可以合成「修好的手電筒」。',
-    demo: `<div style="display:flex;gap:10px;align-items:center;justify-content:center;">
-      <div class="demo-inv dragging" style="cursor:grabbing;">手電筒</div>
-      <div class="demo-arrow active">→</div>
-      <div class="demo-inv glow">電池</div>
-    </div>
-    <div style="color:var(--purple);font-size:11px;margin-top:10px;">↑ 紫色光暈 = 可合成！拖移過去後放開</div>`,
+    get title()   { return window.innerWidth <= 680 ? '合成物品：點擊選取' : '合成物品：拖移卡片'; },
+    get content() {
+      return window.innerWidth <= 680
+        ? '切換到【物品】頁籤，點擊一張物品卡片選取它（黃色發光）。\n\n可合成的其他物品會顯示紫色光暈。\n點擊發光的物品 → 自動完成合成！\n\n範例：點擊「手電筒」→ 再點「電池」\n→ 合成「修好的手電筒」。'
+        : '物品欄的卡片可以互相拖移來合成新道具。\n\n① 按住一張卡片不放\n② 拖移到另一張卡片上面\n③ 看到紫色光暈 → 鬆開滑鼠即完成合成\n\n範例：把「電池」拖移到「手電筒」上，\n可以合成「修好的手電筒」。';
+    },
+    get demo() {
+      return window.innerWidth <= 680
+        ? `<div style="display:flex;gap:10px;align-items:center;justify-content:center;">
+            <div class="demo-inv" style="border-color:var(--yellow);box-shadow:0 0 8px rgba(210,153,34,0.5);">手電筒</div>
+            <div class="demo-arrow active">→</div>
+            <div class="demo-inv glow">電池</div>
+           </div>
+           <div style="color:var(--purple);font-size:11px;margin-top:10px;">↑ 黃色=已選取，紫色=可合成，再點一下完成</div>`
+        : `<div style="display:flex;gap:10px;align-items:center;justify-content:center;">
+            <div class="demo-inv dragging" style="cursor:grabbing;">手電筒</div>
+            <div class="demo-arrow active">→</div>
+            <div class="demo-inv glow">電池</div>
+           </div>
+           <div style="color:var(--purple);font-size:11px;margin-top:10px;">↑ 紫色光暈 = 可合成！拖移過去後放開</div>`;
+    },
   },
   {
     icon: '🔐',
-    title: '與物件互動：拖移或點擊',
-    content: '房間裡的互動物件（保險箱、書架、發電機⋯）\n會以圖示方塊顯示在底部中央區域。\n\n① 直接點擊圖示 → 預設操作（開鎖輸入密碼等）\n② 將物品卡片拖移到物件上 → 使用該物品\n\n範例：把「修復電線」拖移到「⚡ 發電機」上，\n即可啟動電力系統！',
-    demo: `<div style="display:flex;gap:12px;align-items:center;justify-content:center;">
-      <div class="demo-inv dragging" style="cursor:grabbing;">修復電線</div>
-      <div class="demo-arrow" style="color:var(--yellow);">→</div>
-      <div class="demo-obj"><span class="di">⚡</span><span>發電機</span></div>
-    </div>
-    <div style="color:var(--yellow);font-size:11px;margin-top:10px;">↑ 琥珀光暈 = 物品正在拖移到此物件</div>`,
+    get title()   { return window.innerWidth <= 680 ? '與物件互動：選取後點擊' : '與物件互動：拖移或點擊'; },
+    get content() {
+      return window.innerWidth <= 680
+        ? '切換到【行動】頁籤，會顯示房間裡所有可互動的物件。\n\n① 直接點擊物件 → 預設操作（輸入密碼等）\n② 先在【物品】選取物品，再切換到【行動】\n   點擊發光的物件 → 使用該物品於物件\n\n範例：選取「修復電線」後，點擊「⚡ 發電機」'
+        : '房間裡的互動物件（保險箱、書架、發電機⋯）\n會以圖示方塊顯示在底部中央區域。\n\n① 直接點擊圖示 → 預設操作（開鎖輸入密碼等）\n② 將物品卡片拖移到物件上 → 使用該物品\n\n範例：把「修復電線」拖移到「⚡ 發電機」上，\n即可啟動電力系統！';
+    },
+    get demo() {
+      return window.innerWidth <= 680
+        ? `<div style="display:flex;gap:12px;align-items:center;justify-content:center;">
+            <div class="demo-inv" style="border-color:var(--yellow);box-shadow:0 0 8px rgba(210,153,34,0.4);">修復電線</div>
+            <div class="demo-arrow" style="color:var(--yellow);">→</div>
+            <div class="demo-obj" style="border-color:var(--purple);box-shadow:0 0 8px rgba(210,168,255,0.5);"><span class="di">⚡</span><span>發電機</span></div>
+           </div>
+           <div style="color:var(--yellow);font-size:11px;margin-top:10px;">↑ 先選物品（黃），行動頁物件發光（紫），點下去</div>`
+        : `<div style="display:flex;gap:12px;align-items:center;justify-content:center;">
+            <div class="demo-inv dragging" style="cursor:grabbing;">修復電線</div>
+            <div class="demo-arrow" style="color:var(--yellow);">→</div>
+            <div class="demo-obj"><span class="di">⚡</span><span>發電機</span></div>
+           </div>
+           <div style="color:var(--yellow);font-size:11px;margin-top:10px;">↑ 琥珀光暈 = 物品正在拖移到此物件</div>`;
+    },
   },
   {
     icon: '🧑',
@@ -2406,6 +2459,84 @@ function closeTutorial() {
 
 window.nextTutorialStep = nextTutorialStep;
 window.skipTutorial = skipTutorial;
+
+// ─── Code Modal Numpad ───────────────────────────────────────────────────────
+function codeNumpad(digit) {
+  const inp = document.getElementById('code-input');
+  if (inp) inp.value += digit;
+}
+function codeNumpadDel() {
+  const inp = document.getElementById('code-input');
+  if (inp) inp.value = inp.value.slice(0, -1);
+}
+function codeNumpadClear() {
+  const inp = document.getElementById('code-input');
+  if (inp) inp.value = '';
+}
+window.codeNumpad    = codeNumpad;
+window.codeNumpadDel = codeNumpadDel;
+window.codeNumpadClear = codeNumpadClear;
+
+// ─── Export / Import Save ────────────────────────────────────────────────────
+function cmdExport() {
+  const modal = document.getElementById('saveio-modal');
+  if (!modal) return;
+  document.getElementById('saveio-title').textContent = '📤 匯出存檔';
+  const ta = document.getElementById('saveio-text');
+  ta.value = JSON.stringify(gameState);
+  ta.readOnly = true;
+  document.getElementById('saveio-copy-btn').style.display   = 'inline-block';
+  document.getElementById('saveio-import-btn').style.display = 'none';
+  modal.classList.add('show');
+}
+
+function cmdImport() {
+  const modal = document.getElementById('saveio-modal');
+  if (!modal) return;
+  document.getElementById('saveio-title').textContent = '📥 匯入存檔';
+  const ta = document.getElementById('saveio-text');
+  ta.value = '';
+  ta.readOnly = false;
+  ta.placeholder = '請將存檔文字貼入此處…';
+  document.getElementById('saveio-copy-btn').style.display   = 'none';
+  document.getElementById('saveio-import-btn').style.display = 'inline-block';
+  modal.classList.add('show');
+  setTimeout(() => ta.focus(), 100);
+}
+
+function closeSaveIO() {
+  const modal = document.getElementById('saveio-modal');
+  if (modal) modal.classList.remove('show');
+}
+
+function copySaveText() {
+  const ta = document.getElementById('saveio-text');
+  if (!ta) return;
+  const btn = document.getElementById('saveio-copy-btn');
+  navigator.clipboard.writeText(ta.value).then(() => {
+    if (btn) { btn.textContent = '✔ 已複製！'; setTimeout(() => btn.textContent = '📋 複製', 2000); }
+  }).catch(() => { ta.select(); document.execCommand('copy'); });
+}
+
+function importSaveText() {
+  const ta = document.getElementById('saveio-text');
+  if (!ta || !ta.value.trim()) { print('請先貼入存檔文字。', 'error'); return; }
+  try {
+    gameState = JSON.parse(ta.value.trim());
+    closeSaveIO();
+    print('✔ 存檔匯入成功！', 'success');
+    describeRoom();
+    autoSave();
+  } catch(e) {
+    print('匯入失敗：文字格式不正確，請確認是否為完整的存檔資料。', 'error');
+  }
+}
+
+window.cmdExport      = cmdExport;
+window.cmdImport      = cmdImport;
+window.closeSaveIO    = closeSaveIO;
+window.copySaveText   = copySaveText;
+window.importSaveText = importSaveText;
 
 // ─── Initialize ──────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {

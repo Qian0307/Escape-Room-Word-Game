@@ -984,6 +984,124 @@ html, body {
 ::-webkit-scrollbar-track  { background: var(--bg); }
 ::-webkit-scrollbar-thumb  { background: var(--border-light); border-radius: 3px; }
 
+/* ===== NUMPAD ===== */
+#code-numpad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.np-btn {
+  background: var(--bg-btn);
+  border: 1px solid var(--border-light);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 20px;
+  font-weight: bold;
+  padding: 12px 0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.1s;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.np-btn:hover  { background: var(--bg-btn-hover); }
+.np-btn:active { background: var(--border-light); }
+.np-del  { color: var(--red);    border-color: rgba(248,81,73,0.3); }
+.np-clear{ color: var(--yellow); border-color: rgba(210,153,34,0.3); font-size: 15px; }
+
+/* ===== EXPORT / IMPORT MODAL ===== */
+#saveio-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 200;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+#saveio-modal.show { display: flex; }
+
+#saveio-box {
+  background: var(--bg-panel);
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  padding: 24px 28px;
+  width: min(520px, calc(100vw - 32px));
+  box-shadow: 0 0 40px rgba(88,166,255,0.15);
+}
+
+#saveio-title {
+  color: var(--accent);
+  font-size: 17px;
+  font-weight: bold;
+  margin-bottom: 14px;
+}
+
+#saveio-text {
+  width: 100%;
+  height: 140px;
+  background: var(--bg);
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  color: var(--text-dim);
+  font-family: var(--font);
+  font-size: 11px;
+  padding: 10px;
+  resize: vertical;
+  outline: none;
+  margin-bottom: 16px;
+  word-break: break-all;
+}
+#saveio-text:focus { border-color: var(--accent); }
+
+#saveio-btns {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+#saveio-btns button {
+  background: var(--bg-btn);
+  border: 1px solid var(--border-light);
+  color: var(--text-dim);
+  font-family: var(--font);
+  font-size: 14px;
+  padding: 8px 18px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.12s;
+}
+#saveio-btns button:hover { border-color: var(--accent); color: var(--text); }
+#saveio-copy-btn   { border-color: var(--green-dim); color: var(--green); }
+#saveio-import-btn { background: var(--green-dark); border-color: var(--green-dim); color: var(--green); }
+
+/* ===== ROOM TRANSITION ===== */
+#room-transition {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  pointer-events: none;
+  opacity: 0;
+  z-index: 49;
+  transition: opacity 0.22s ease;
+}
+#room-transition.active { opacity: 0.55; }
+
+/* ===== MAP FAST TRAVEL ===== */
+.map-room.map-clickable {
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.map-room.map-clickable:hover {
+  border-color: var(--green);
+  color: var(--green);
+  background: rgba(63,185,80,0.1);
+  box-shadow: 0 0 6px rgba(63,185,80,0.3);
+}
+
 /* ===== MOBILE NAV / PANEL — hidden on desktop ===== */
 #mobile-nav   { display: none; }
 #mobile-panel { display: none; }
