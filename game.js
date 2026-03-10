@@ -284,7 +284,7 @@ const ROOMS = {
     name: '檔案室',
     desc: '金屬文件櫃排列得密密麻麻，抽屜上都貼著分類標籤，但許多已經被撕掉或塗黑。地板上散落著各種文件，顯然有人曾經匆忙翻找過這裡。靠近南牆有一扇沉重的金屬門，上面有一個密碼鍵盤，紅色的燈在黑暗中閃爍。一些重要文件仍然夾在散落的紙堆之中。',
     items: ['cipherPaper', 'oldPhoto'],
-    exits: { east: 'hallway', south: 'underground' },
+    exits: { east: 'hallway', south: 'underground', west: 'securityRoom' },
     puzzles: ['archivePuzzle'],
     hints: ['密碼紙上的符號需要解讀，找找看是否有工具可以幫助你。', '舊照片的背面可能藏有線索。'],
     lockedExits: { north: { room: 'secretArchive', requires: 'redCard', altItem: 'idCard' } },
@@ -333,6 +333,7 @@ const ROOMS = {
     desc: '一排排的監控螢幕，大多數已經黑屏，幾個仍然顯示著模糊的畫面——空曠的走廊，廢棄的實驗室，黑暗的地下室。控制面板上有許多按鈕和開關，大部分都已關閉。一個電子面板的螺絲看起來鬆動了，也許可以拆開它。只有在電力恢復後，這些系統才能完全啟動。',
     items: ['screwdriver'],
     exits: { south: 'library', east: 'commRoom', west: 'cipherRoom' },
+    lockedExits: { north: { room: 'restRoom', requires: 'blueCard' } },
     puzzles: ['controlPuzzle'],
     hints: ['螺絲起子可以拆開控制面板。', '必須先讓發電機恢復運作，控制室的系統才能啟動。'],
   },
@@ -376,8 +377,8 @@ const ROOMS = {
     id: 'restRoom',
     name: '休息室',
     desc: '員工休息室裡有幾把磨損的沙發和一張咖啡桌。桌上有一個口紅染色的咖啡杯，杯底留著些什麼。牆上掛著一個月曆，日期停在幾年前的某一天——某人最後一次在這裡喝咖啡的那天。一個封好的信封被壓在一本雜誌下面，上面沒有任何標記。',
-    items: ['envelope', 'lipstickCup'],
-    exits: { down: 'hallway' },
+    items: ['envelope'],
+    exits: { south: 'controlRoom' },
     puzzles: ['cupPuzzle'],
     hints: ['那個口紅杯底有東西——仔細檢查它。', '信封裡可能藏有線索。'],
   },
@@ -386,7 +387,7 @@ const ROOMS = {
     name: '保全室',
     desc: '保全室的監控設備大部分已經損壞，但仍能看出這裡曾經是整個設施的眼睛。牆上掛著一個員工識別證，照片已經模糊到幾乎看不清楚。桌上有一把備用鑰匙，用鐵圈掛著。這個房間明顯有人匆忙離開——椅子翻倒，幾個抽屜敞開著。',
     items: ['idCard', 'keyB'],
-    exits: { east: 'hallway' },
+    exits: { east: 'archive' },
     puzzles: ['keypadPuzzle'],
     hints: ['識別證可以用來通過某些門禁系統。', '找到秘密檔案室的入口並使用識別證。'],
   },
@@ -413,7 +414,7 @@ const ROOMS = {
     id: 'deepUnderground',
     name: '深層地下室',
     desc: '比地下走廊更深的地方，空氣幾乎凝固，呼吸都變得困難。這裡沒有任何標示，沒有任何說明牌——這個地方的存在本身就不該被知道。牆壁上的符號不是任何已知的語言，更像是某種記號，像是有人在絕望中刻下的東西。中央有一個重型金屬容器，表面光滑，封閉得嚴密，上面標著「BX-17 / 永久保存」。你想起了吳明遠說過的話——失蹤的人，他們的身體還在這裡。你站在容器前，感到一種說不清楚的沉重。這個地方充滿了一種讓人想逃離，卻又讓人無法移開眼睛的不祥。',
-    items: ['metalContainer'],
+    items: [],
     exits: { west: 'underground' },
     puzzles: ['containerPuzzle'],
     hints: ['那個金屬容器引人注意，但打開它可能有風險。', '三思而後行——一旦做了選擇，就無法回頭。'],
@@ -1058,12 +1059,12 @@ function generateWalkthrough() {
     '  • 向東→實驗室B區',
     '  • 拿起「USB隨身碟」和「解碼器」',
     '',
-    '【第七步】保全室 & 檔案室',
-    '  • 返回走廊，前往保全室（在走廊西側）',
-    '  • 拿起「識別證」和「鑰匙B」',
-    '  • 走廊→西→檔案室',
+    '【第七步】檔案室 & 保全室',
+    '  • 返回走廊，向西→檔案室',
     '  • 拿起「密碼紙」和「舊照片」',
-    '  • 點擊「刷識別證開門」→ 秘密檔案室解鎖',
+    '  • 繼續向西→保全室（在檔案室西側）',
+    '  • 拿起「識別證」和「鑰匙B」',
+    '  • 返回檔案室，點擊「刷識別證開門」→ 秘密檔案室解鎖',
     '',
     '【第八步】地下走廊 & 發電機房',
     '  • 在檔案室，點擊「↓ 地下走廊」',
@@ -1357,6 +1358,14 @@ function cmdUse(args) {
     PUZZLES.tapePuzzle.solve([]);
   } else if (itemId === 'finalKey' && (target === 'exit' || target === '出口' || target === 'door' || target === '門' || target === '')) {
     PUZZLES.exitPuzzle.solve([]);
+  } else if (itemId === 'mixedChemical' && (target === 'labbox' || target === '密碼箱' || target === '')) {
+    if (gameState.currentRoom !== 'lab') { print('這裡沒有密碼箱。去實驗室試試。', 'error'); return; }
+    if (gameState.solvedPuzzles.includes('labBoxPuzzle')) { print('密碼箱已經打開了。', 'info'); return; }
+    markSolved('labBoxPuzzle');
+    gameState.inventory = gameState.inventory.filter(i => i !== 'mixedChemical');
+    addItem('redCard');
+    print('你將紫色化合物澆在密碼箱的鎖具上，腐蝕性液體發出嘶嘶聲，幾秒後鎖扣溶化脫落！密碼箱彈開了，裡面有一張紅色磁卡。', 'success');
+    updateSidebar();
   } else if (itemId === 'map') {
     showMap();
   } else {
